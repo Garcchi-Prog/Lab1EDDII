@@ -988,7 +988,7 @@ class VisualizadorArbol(tk.Canvas):
         self.create_text(x, y - 5, text=id_texto, font=("Arial", 9, "bold"))
         
         # Dibujar satisfaccion debajo del ID, con fuente mas pequeña
-        self.create_text(x, y + 10, text=f"{nodo.satisfaccion:.3f}", 
+        self.create_text(x, y + 10, text=f"{nodo.satisfaccion:.5f}", 
                         font=("Arial", 7), fill="#555")
         
         # Recursivamente dibujar hijos
