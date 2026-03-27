@@ -236,13 +236,6 @@ def buscar_abuelo(raiz, nodo):
 def buscar_tio(raiz, nodo):
     """
     Busca el tio de un nodo (hermano del padre).
-
-    El tio es el otro hijo del abuelo (el que no es el padre).
-    Para encontrarlo:
-      1. Se busca el padre del nodo.
-      2. Se busca el abuelo (padre del padre).
-      3. Se determina cual hijo del abuelo es el padre y se retorna el otro.
-    Si cualquier paso falla (no hay padre o no hay abuelo), retorna None.
     """
     padre = buscar_padre(raiz, nodo)
     if padre is None:
@@ -252,8 +245,8 @@ def buscar_tio(raiz, nodo):
     if abuelo is None:
         return None
     
-    # El tio es el otro hijo del abuelo (el que no es el padre)
-    if abuelo.izquierda is padre:
+    # CORRECCIÓN: Comparar por satisfacción en lugar de identidad
+    if abuelo.izquierda and abuelo.izquierda.satisfaccion == padre.satisfaccion:
         return abuelo.derecha
     else:
         return abuelo.izquierda
@@ -1202,7 +1195,7 @@ class AplicacionAVL(tk.Tk):
         self._crear_panel_izquierdo()
         self._crear_panel_central()
         self._crear_panel_derecho()
-        
+
         # Mensaje inicial en el log para orientar al usuario
         self._log("Sistema iniciado. Cargue un dataset para comenzar.")
     
@@ -1379,6 +1372,23 @@ class AplicacionAVL(tk.Tk):
         self.entry_fecha.pack(pady=5)
         tk.Button(panel, text="Buscar por Fecha", command=self._buscar_4b,
                  bg="#9b59b6", fg="white", width=30).pack(pady=5)
+        # Crea un encabezado o contenedor visual llamado "Relaciones Familiares" dentro del panel lateral
+        self._crear_seccion(panel, "Relaciones Familiares")
+        # Etiqueta informativa para indicar al usuario que debe ingresar un ID
+        tk.Label(panel, text="ID del nodo:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=10)
+        # Campo de entrada para que el usuario ingrese el ID del nodo del cual quiere buscar las relaciones familiares
+        self.entry_familia = tk.Entry(panel, width=30)
+        self.entry_familia.pack(pady=5)
+        # Botones para buscar el padre, abuelo y tio del nodo ingresado
+        btn_frame = tk.Frame(panel, bg=COLOR_PANEL)
+        btn_frame.pack(pady=5)
+        # Cada boton llama a una funcion diferente que realiza la busqueda correspondiente y muestra los resultados en el log o en ventanas emergentes
+        tk.Button(btn_frame, text="Buscar Padre", command=self._buscar_padre_ui,
+                 bg=COLOR_BOTON, fg="white", width=12).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Buscar Abuelo", command=self._buscar_abuelo_ui,
+                 bg=COLOR_BOTON, fg="white", width=12).pack(side="left", padx=2)
+        tk.Button(btn_frame, text="Buscar Tío", command=self._buscar_tio_ui,
+                 bg=COLOR_BOTON, fg="white", width=12).pack(side="left", padx=2)
         
         # 4c: buscar cursos con numero de clases en un rango [min, max]
         frame_rango = tk.Frame(panel, bg=COLOR_PANEL)
@@ -1709,6 +1719,87 @@ class AplicacionAVL(tk.Tk):
             "Universidad del Norte\\n\\n"
             "Arbol AVL para gestion de cursos Udemy\\n"
             "Implementado con Python y tkinter")
+    def _buscar_padre_ui(self):
+        """Busca y muestra el padre de un nodo"""
+        id_nodo = self.entry_familia.get().strip()
+        if not id_nodo:
+            self._log("Ingrese un ID de nodo", "error")
+            return
+        
+        # Buscar el nodo en el árbol por ID
+        nodo = self.arbol.buscar_por_id(self.arbol.raiz, id_nodo)
+        if nodo is None:
+            self._log(f"Nodo '{id_nodo}' no encontrado en el árbol", "error")
+            return
+        
+        # Buscar su padre
+        padre = buscar_padre(self.arbol.raiz, nodo)
+        
+        if padre:
+            self._log(f"Padre de {id_nodo}: {padre.get_id()} - {padre.get_titulo()[:30]}", "exito")
+            self._actualizar_vista(padre.get_id())  # Resaltar padre en amarillo
+            VentanaInfo(self, padre, self.arbol)
+        else:
+            self._log(f"El nodo {id_nodo} es la RAÍZ (no tiene padre)", "alerta")
+            messagebox.showinfo("Sin Padre", f"El nodo '{id_nodo}' es la raíz del árbol.")
+    
+    def _buscar_abuelo_ui(self):
+        """Busca y muestra el abuelo de un nodo"""
+        id_nodo = self.entry_familia.get().strip()
+        if not id_nodo:
+            self._log("Ingrese un ID de nodo", "error")
+            return
+        
+        nodo = self.arbol.buscar_por_id(self.arbol.raiz, id_nodo)
+        if nodo is None:
+            self._log(f"Nodo '{id_nodo}' no encontrado en el árbol", "error")
+            return
+        
+        # Buscar su abuelo
+        abuelo = buscar_abuelo(self.arbol.raiz, nodo)
+        
+        if abuelo:
+            self._log(f"Abuelo de {id_nodo}: {abuelo.get_id()} - {abuelo.get_titulo()[:30]}", "exito")
+            self._actualizar_vista(abuelo.get_id())
+            VentanaInfo(self, abuelo, self.arbol)
+        else:
+            self._log(f"El nodo {id_nodo} no tiene abuelo (está en nivel 0 o 1)", "alerta")
+            messagebox.showinfo("Sin Abuelo", 
+                              f"El nodo '{id_nodo}' no tiene abuelo.\n"
+                              f"Nivel: {obtener_nivel(self.arbol.raiz, nodo)}")
+    
+    def _buscar_tio_ui(self):
+        """Busca y muestra el tío de un nodo"""
+        id_nodo = self.entry_familia.get().strip()
+        if not id_nodo:
+            self._log("Ingrese un ID de nodo", "error")
+            return
+        
+        nodo = self.arbol.buscar_por_id(self.arbol.raiz, id_nodo)
+        if nodo is None:
+            self._log(f"Nodo '{id_nodo}' no encontrado en el árbol", "error")
+            return
+        
+        # Buscar su tío
+        tio = buscar_tio(self.arbol.raiz, nodo)
+        
+        if tio:
+            self._log(f"Tío de {id_nodo}: {tio.get_id()} - {tio.get_titulo()[:30]}", "exito")
+            self._actualizar_vista(tio.get_id())
+            VentanaInfo(self, tio, self.arbol)
+        else:
+            padre = buscar_padre(self.arbol.raiz, nodo)
+            if padre is None:
+                msg = "El nodo es la raíz (no tiene padre, ni abuelo, ni tío)"
+            else:
+                abuelo = buscar_abuelo(self.arbol.raiz, nodo)
+                if abuelo is None:
+                    msg = "El padre del nodo es la raíz (no tiene abuelo, por tanto no tiene tío)"
+                else:
+                    msg = "El abuelo solo tiene un hijo (el padre del nodo), por tanto no hay tío"
+            
+            self._log(f"El nodo {id_nodo} no tiene tío", "alerta")
+            messagebox.showinfo("Sin Tío", msg)
 
 # PUNTO DE ENTRADA
 # ============================================================
