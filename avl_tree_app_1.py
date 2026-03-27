@@ -101,14 +101,14 @@ class Nodo:
     def get_neutras(self):
         return self.datos[13] if len(self.datos) > 13 else "0"
 
-# ============================================================
-# FUNCIONES AUXILIARES DEL AVL
-# ============================================================
+
+# Funciones de AVL
+
 
 def obtener_altura(nodo):
-    """Devuelve la altura de un nodo (0 si es None)
+    """Devolvemos la altura de un nodo (0 si es None)
     
-    Tratar None como altura 0 simplifica el codigo: no hay que
+    Tratamos None como altura 0 para simplificar el codigo, para que no haya que
     verificar si el nodo existe antes de llamar a esta funcion.
     """
     if nodo is None:
@@ -116,7 +116,7 @@ def obtener_altura(nodo):
     return nodo.altura
 
 def actualizar_altura(nodo):
-    """Actualiza la altura de un nodo basado en sus hijos
+    """Actualizamos la altura de un nodo basado en sus hijos
     
     La altura de un nodo es 1 (el propio nodo) mas la mayor
     altura entre sus dos subarboles. Se llama despues de cada
@@ -128,39 +128,24 @@ def actualizar_altura(nodo):
         nodo.altura = 1 + max(alt_izq, alt_der)
 
 def obtener_balance(nodo):
-    """Calcula el factor de balance: altura izq - altura der
-    
-    En un AVL valido, el balance de cada nodo debe estar
-    siempre en el rango [-1, 0, 1].
-      - Positivo (>1): el subarbol izquierdo es mas alto -> hay que rotar a la derecha
-      - Negativo (<-1): el subarbol derecho es mas alto  -> hay que rotar a la izquierda
-      - Cero o +-1: el nodo esta balanceado, no se hace nada
+    """Calculamos el factor de balance de un nodo usando la convencion derecha - izquierda.
+
+    Restamos la altura del subarbol derecho MENOS la del izquierdo,
+    siguiendo la convencion vista en clase:
+      - Si el resultado es positivo, el subarbol derecho es mas alto (cargado a la derecha).
+      - Si el resultado es negativo, el subarbol izquierdo es mas alto (cargado a la izquierda).
+      - Si el resultado es 0, ambos subarboles tienen la misma altura (perfectamente balanceado).
+
+    Un nodo esta en equilibrio AVL si el valor absoluto de este factor es <= 1.
+    Retornamos 0 si el nodo es None para evitar errores al llamar la funcion con hojas inexistentes.
     """
     if nodo is None:
         return 0
-    return obtener_altura(nodo.izquierda) - obtener_altura(nodo.derecha)
+    # Convencion der - izq: positivo = cargado a la derecha, negativo = cargado a la izquierda
+    return obtener_altura(nodo.derecha) - obtener_altura(nodo.izquierda)
 
 def rotacion_derecha(y):
-    """
-    Rotacion simple a la derecha.
-    y es el nodo desbalanceado, x es su hijo izquierdo.
-
-    Situacion inicial (balance de y > 1, insercion en el subarbol izquierdo-izquierdo):
-          y
-         /
-        x
-       /
-      T1
-
-    Despues de la rotacion:
-        x
-       / \\
-      T1   y
-
-    x sube a la posicion de y, y baja como hijo derecho de x.
-    El hijo derecho de x (temp) pasa a ser el hijo izquierdo de y
-    para que no se pierda ningun nodo.
-    """
+    
     x = y.izquierda
     temp = x.derecha
     
@@ -176,26 +161,7 @@ def rotacion_derecha(y):
     return x
 
 def rotacion_izquierda(x):
-    """
-    Rotacion simple a la izquierda.
-    x es el nodo desbalanceado, y es su hijo derecho.
-
-    Situacion inicial (balance de x < -1, insercion en el subarbol derecho-derecho):
-      x
-       \\
-        y
-         \\
-          T2
-
-    Despues de la rotacion:
-        y
-       / \\
-      x   T2
-
-    y sube a la posicion de x, x baja como hijo izquierdo de y.
-    El hijo izquierdo de y (temp) pasa a ser el hijo derecho de x
-    para que no se pierda ningun nodo.
-    """
+    
     y = x.derecha
     temp = y.izquierda
     
@@ -209,6 +175,20 @@ def rotacion_izquierda(x):
     
     # y es ahora la nueva raiz de este subarbol
     return y
+
+def rotacion_doble_derecha_izquierda(nodo):
+    
+    # Paso 1: convertimos el subarbol derecho   
+    nodo.derecha = rotacion_derecha(nodo.derecha)
+    # Paso 2: ahora aplico la rotacion izquierda simple sobre el nodo desbalanceado
+    return rotacion_izquierda(nodo)
+
+def rotacion_doble_izquierda_derecha(nodo):
+   
+    # Paso 1: convierto el subarbol izquierdo de LR a LL
+    nodo.izquierda = rotacion_izquierda(nodo.izquierda)
+    # Paso 2: ahora aplico la rotacion derecha simple sobre el nodo desbalanceado
+    return rotacion_derecha(nodo)
 
 # ============================================================
 # FUNCIONES RECURSIVAS REQUERIDAS POR EL LABORATORIO
@@ -391,23 +371,32 @@ class ArbolAVL:
     
     def _insertar_recursivo(self, nodo, nuevo):
         """
-        Insercion recursiva con balanceo.
+        Insercion recursiva con balanceo usando la convencion der - izq.
 
         Funciona en dos fases:
           FASE 1 - Insercion BST normal:
-            Se baja recursivamente por el arbol comparando satisfacciones
+            Bajo recursivamente por el arbol comparando satisfacciones
             hasta encontrar una posicion vacia (None) donde colocar el nuevo nodo.
 
           FASE 2 - Rebalanceo en el camino de regreso:
-            Al volver de la recursion, se actualiza la altura y se verifica
-            el balance. Si el balance se rompio (>1 o <-1), se aplica la
-            rotacion adecuada segun cual fue el caso de desbalance.
+            Al volver de la recursion, actualizo la altura y verifico
+            el balance con la formula der - izq. Si el balance supera
+            los limites aceptables (> 1 o < -1), aplico la rotacion
+            adecuada segun el caso de desbalance detectado.
 
-        Los 4 casos de desbalance y sus rotaciones:
-          - Left-Left (LL):   insercion en izquierda-izquierda -> rotacion derecha simple
-          - Right-Right (RR): insercion en derecha-derecha     -> rotacion izquierda simple
-          - Left-Right (LR):  insercion en izquierda-derecha   -> rotacion izquierda + derecha
-          - Right-Left (RL):  insercion en derecha-izquierda   -> rotacion derecha + izquierda
+        Los 4 casos de desbalance con la convencion der - izq
+        (balance = altura_derecha - altura_izquierda):
+
+          - Right-Right (RR): balance > 1 y nuevo va al subarbol derecho-derecho
+                              -> aplico rotacion izquierda simple.
+          - Left-Left   (LL): balance < -1 y nuevo va al subarbol izquierdo-izquierdo
+                              -> aplico rotacion derecha simple.
+          - Right-Left  (RL): balance > 1 y nuevo va al subarbol derecho-izquierdo
+                              -> primero roto a la derecha el hijo derecho, luego roto
+                                 a la izquierda el nodo desbalanceado.
+          - Left-Right  (LR): balance < -1 y nuevo va al subarbol izquierdo-derecho
+                              -> primero roto a la izquierda el hijo izquierdo, luego
+                                 roto a la derecha el nodo desbalanceado.
         """
         # Caso base: llegamos a una hoja, aqui va el nuevo nodo
         if nodo is None:
@@ -419,37 +408,43 @@ class ArbolAVL:
         else:
             nodo.derecha = self._insertar_recursivo(nodo.derecha, nuevo)
         
-        # Actualizar altura del nodo actual al volver de la recursion
+        # Actualizo la altura del nodo actual al volver de la recursion
         actualizar_altura(nodo)
         
-        # Obtener factor de balance para saber si hay que rotar
+        # Obtengo el factor de balance (der - izq) para detectar desbalance
         balance = obtener_balance(nodo)
         
-        # Caso 1: Desbalance hacia la izquierda (Left Left)
-        # El nodo nuevo se inserto en el subarbol izquierdo del hijo izquierdo
-        if balance > 1 and nuevo.satisfaccion < nodo.izquierda.satisfaccion:
-            return rotacion_derecha(nodo)
-        
-        # Caso 2: Desbalance hacia la derecha (Right Right)
-        # El nodo nuevo se inserto en el subarbol derecho del hijo derecho
-        if balance < -1 and nuevo.satisfaccion > nodo.derecha.satisfaccion:
+        # Caso RR: subarbol derecho mas alto Y nuevo fue por la rama derecha-derecha.
+        # El balance > 1 confirma que la derecha pesa mas; la satisfaccion del nuevo
+        # mayor que la del hijo derecho confirma que bajo por su subarbol derecho.
+        # Solucion: una sola rotacion izquierda simple endereza el arbol.
+        if balance > 1 and nuevo.satisfaccion > nodo.derecha.satisfaccion:
             return rotacion_izquierda(nodo)
         
-        # Caso 3: Left Right
-        # El nodo nuevo se inserto en el subarbol derecho del hijo izquierdo
-        # Se necesitan dos rotaciones: primero izquierda (para convertirlo en LL) y luego derecha
-        if balance > 1 and nuevo.satisfaccion > nodo.izquierda.satisfaccion:
-            nodo.izquierda = rotacion_izquierda(nodo.izquierda)
+        # Caso LL: subarbol izquierdo mas alto Y nuevo fue por la rama izquierda-izquierda.
+        # El balance < -1 confirma que la izquierda pesa mas; la satisfaccion del nuevo
+        # menor que la del hijo izquierdo confirma que bajo por su subarbol izquierdo.
+        # Solucion: una sola rotacion derecha simple endereza el arbol.
+        if balance < -1 and nuevo.satisfaccion < nodo.izquierda.satisfaccion:
             return rotacion_derecha(nodo)
         
-        # Caso 4: Right Left
-        # El nodo nuevo se inserto en el subarbol izquierdo del hijo derecho
-        # Se necesitan dos rotaciones: primero derecha (para convertirlo en RR) y luego izquierda
-        if balance < -1 and nuevo.satisfaccion < nodo.derecha.satisfaccion:
-            nodo.derecha = rotacion_derecha(nodo.derecha)
-            return rotacion_izquierda(nodo)
+        # Caso RL: subarbol derecho mas alto PERO nuevo fue por la rama derecha-izquierda.
+        # El balance > 1 indica que la derecha pesa mas, pero la satisfaccion del nuevo
+        # menor que la del hijo derecho delata que el nuevo bajo hacia la izquierda de ese hijo.
+        # Solucion: rotacion doble Derecha-Izquierda (primero roto derecha el hijo, luego
+        # roto izquierda el nodo), dejando el peso alineado antes de la rotacion final.
+        if balance > 1 and nuevo.satisfaccion < nodo.derecha.satisfaccion:
+            return rotacion_doble_derecha_izquierda(nodo)
         
-        # Si el balance es correcto, retornar el nodo sin cambios
+        # Caso LR: subarbol izquierdo mas alto PERO nuevo fue por la rama izquierda-derecha.
+        # El balance < -1 indica que la izquierda pesa mas, pero la satisfaccion del nuevo
+        # mayor que la del hijo izquierdo delata que el nuevo bajo hacia la derecha de ese hijo.
+        # Solucion: rotacion doble Izquierda-Derecha (primero roto izquierda el hijo, luego
+        # roto derecha el nodo), dejando el peso alineado antes de la rotacion final.
+        if balance < -1 and nuevo.satisfaccion > nodo.izquierda.satisfaccion:
+            return rotacion_doble_izquierda_derecha(nodo)
+        
+        # Si el balance sigue siendo correcto (+-1 o 0), retorno el nodo sin cambios
         return nodo
     
     def eliminar(self, valor, tipo):
@@ -515,74 +510,129 @@ class ArbolAVL:
     
     def _eliminar_recursivo(self, nodo, satisfaccion):
         """
-        Eliminacion recursiva con balanceo.
+        Eliminacion recursiva con balanceo usando la convencion der - izq.
 
         Igual que la insercion, opera en dos fases:
+
           FASE 1 - Eliminar el nodo (logica BST estandar):
-            Hay tres sub-casos:
-              a) Nodo hoja (sin hijos): simplemente se elimina retornando None.
-              b) Nodo con un solo hijo: se reemplaza por ese hijo.
-              c) Nodo con dos hijos: se busca el sucesor en orden (el nodo
-                 con la satisfaccion mas baja en el subarbol derecho), se
-                 copian sus datos al nodo actual, y se elimina el sucesor
-                 del subarbol derecho.
+            Hay tres sub-casos segun la cantidad de hijos del nodo encontrado:
+              a) Nodo hoja (sin hijos):
+                 Simplemente lo elimino retornando None. El padre queda apuntando
+                 a None donde antes estaba este nodo.
+              b) Nodo con un solo hijo (izquierdo O derecho):
+                 Lo reemplazo directamente por su unico hijo. El nodo desaparece
+                 y su hijo sube a ocupar su lugar en el arbol.
+              c) Nodo con dos hijos:
+                 No puedo eliminarlo directamente sin romper el BST. Busco el
+                 sucesor en orden (el nodo con la satisfaccion inmediatamente
+                 mayor, es decir, el minimo del subarbol derecho). Copio sus
+                 datos al nodo actual para reemplazarlo "en sitio", y luego
+                 elimino el sucesor de su posicion original en el subarbol
+                 derecho (donde siempre es un caso a o b, nunca c).
 
           FASE 2 - Rebalanceo al volver de la recursion:
-            Identico al proceso de insercion: actualizar altura y aplicar
-            la rotacion necesaria si el balance se rompio.
+            A diferencia de la insercion (donde el nuevo nodo indica el caso),
+            en la eliminacion uso obtener_balance() del hijo para confirmar
+            hacia que lado esta cargado el subarbol que provoco el desbalance.
+            Con la convencion der - izq los cuatro casos son:
+
+            - RR (balance > 1 y balance_hijo_derecho >= 0):
+                El subarbol derecho es mas alto Y su hijo derecho tambien lo es
+                (o estan igualados). Una rotacion izquierda simple lo corrige.
+
+            - RL (balance > 1 y balance_hijo_derecho < 0):
+                El subarbol derecho es mas alto PERO su hijo izquierdo pesa mas.
+                El peso esta "doblado hacia adentro": necesito la rotacion doble
+                Derecha-Izquierda (roto derecha el hijo derecho, luego izquierda
+                el nodo) para alinear el peso antes de corregirlo.
+
+            - LL (balance < -1 y balance_hijo_izquierdo <= 0):
+                El subarbol izquierdo es mas alto Y su hijo izquierdo tambien lo es
+                (o estan igualados). Una rotacion derecha simple lo corrige.
+
+            - LR (balance < -1 y balance_hijo_izquierdo > 0):
+                El subarbol izquierdo es mas alto PERO su hijo derecho pesa mas.
+                El peso esta "doblado hacia adentro": necesito la rotacion doble
+                Izquierda-Derecha (roto izquierda el hijo izquierdo, luego derecha
+                el nodo) para alinear el peso antes de corregirlo.
+
+          Nota importante sobre >= 0 y <= 0 en los casos RR y LL:
+            En la eliminacion puede quedar un hijo con balance 0 (ambos subarboles
+            iguales) cuando se elimina exactamente el nodo que daba ventaja a uno
+            de sus lados. Si no incluyera el caso == 0, ese hijo quedaria sin
+            clasificar y el rebalanceo fallaria silenciosamente. Por eso uso >= 0
+            para RR y <= 0 para LL en lugar de > 0 y < 0 como en la insercion.
         """
         if nodo is None:
             return None
         
-        # Descender al nodo correcto segun el orden BST
+        # Desciendo al nodo correcto segun el orden BST
         if satisfaccion < nodo.satisfaccion:
             nodo.izquierda = self._eliminar_recursivo(nodo.izquierda, satisfaccion)
         elif satisfaccion > nodo.satisfaccion:
             nodo.derecha = self._eliminar_recursivo(nodo.derecha, satisfaccion)
         else:
-            # Nodo encontrado - aplicar uno de los 3 casos de eliminacion
-            
-            # Caso a y b: sin hijo izquierdo -> el hijo derecho lo reemplaza (puede ser None)
+            # Nodo encontrado - aplico uno de los 3 casos de eliminacion
+
+            # Caso a / b (sin hijo izquierdo):
+            # Si no hay hijo izquierdo, el hijo derecho sube directamente.
+            # Funciona tanto para nodo hoja (derecha = None) como para nodo con un hijo.
             if nodo.izquierda is None:
                 return nodo.derecha
-            # Caso b: sin hijo derecho -> el hijo izquierdo lo reemplaza
+
+            # Caso b (sin hijo derecho):
+            # Solo queda el hijo izquierdo, que sube directamente.
             elif nodo.derecha is None:
                 return nodo.izquierda
             
-            # Caso c: dos hijos -> buscar sucesor (minimo del subarbol derecho)
-            # El sucesor es el nodo con la satisfaccion inmediatamente mayor,
-            # lo que garantiza que el arbol sigue siendo un BST valido.
+            # Caso c (dos hijos):
+            # Busco el sucesor: el nodo con la satisfaccion minima en el subarbol derecho.
+            # Es el candidato natural para reemplazar al eliminado porque es mayor que todo
+            # el subarbol izquierdo y menor que todo el resto del subarbol derecho.
             sucesor = self._minimo(nodo.derecha)
-            # Copiar los datos del sucesor al nodo actual (reemplazar en sitio)
+            # Copio los datos del sucesor al nodo actual (el "reemplazo en sitio")
             nodo.datos = sucesor.datos
             nodo.satisfaccion = sucesor.satisfaccion
-            # Eliminar el sucesor de su posicion original en el subarbol derecho
+            # Elimino el sucesor de su posicion en el subarbol derecho.
+            # El sucesor es siempre el minimo, asi que no tiene hijo izquierdo
+            # -> su eliminacion cae en el caso a o b, nunca en c (no hay recursion infinita).
             nodo.derecha = self._eliminar_recursivo(nodo.derecha, sucesor.satisfaccion)
         
-        # Actualizar altura al volver de la recursion
+        # Actualizo la altura al volver de la recursion, ya con el hijo modificado
         actualizar_altura(nodo)
         
-        # Verificar y corregir el balance (mismos 4 casos que en la insercion)
+        # Calculo el factor de balance (der - izq) para detectar si hay que rotar
         balance = obtener_balance(nodo)
         
-        # Left Left: el subarbol izquierdo es mas alto y su hijo izquierdo tambien
-        if balance > 1 and obtener_balance(nodo.izquierda) >= 0:
-            return rotacion_derecha(nodo)
-        
-        # Left Right: el subarbol izquierdo es mas alto pero su hijo derecho es mayor
-        if balance > 1 and obtener_balance(nodo.izquierda) < 0:
-            nodo.izquierda = rotacion_izquierda(nodo.izquierda)
-            return rotacion_derecha(nodo)
-        
-        # Right Right: el subarbol derecho es mas alto y su hijo derecho tambien
-        if balance < -1 and obtener_balance(nodo.derecha) <= 0:
+        # Caso RR: subarbol derecho mas alto Y su hijo derecho cargado a la derecha (o igual).
+        # El >= 0 cubre tambien el caso de hijo balanceado (balance == 0), que puede
+        # darse en eliminaciones cuando se remueve el nodo que igualaba las alturas.
+        # Solucion: rotacion izquierda simple.
+        if balance > 1 and obtener_balance(nodo.derecha) >= 0:
             return rotacion_izquierda(nodo)
         
-        # Right Left: el subarbol derecho es mas alto pero su hijo izquierdo es mayor
-        if balance < -1 and obtener_balance(nodo.derecha) > 0:
-            nodo.derecha = rotacion_derecha(nodo.derecha)
-            return rotacion_izquierda(nodo)
+        # Caso RL: subarbol derecho mas alto PERO su hijo izquierdo pesa mas (balance < 0).
+        # Una rotacion izquierda simple empeoraria la situacion porque el peso esta
+        # "doblado hacia adentro". Uso la rotacion doble Derecha-Izquierda para
+        # alinear primero el subarbol derecho y luego corregir el nodo desbalanceado.
+        if balance > 1 and obtener_balance(nodo.derecha) < 0:
+            return rotacion_doble_derecha_izquierda(nodo)
         
+        # Caso LL: subarbol izquierdo mas alto Y su hijo izquierdo cargado a la izquierda (o igual).
+        # El <= 0 cubre tambien el caso de hijo balanceado (balance == 0), mismo razonamiento
+        # que en RR pero para el lado izquierdo.
+        # Solucion: rotacion derecha simple.
+        if balance < -1 and obtener_balance(nodo.izquierda) <= 0:
+            return rotacion_derecha(nodo)
+        
+        # Caso LR: subarbol izquierdo mas alto PERO su hijo derecho pesa mas (balance > 0).
+        # Una rotacion derecha simple empeoraria la situacion porque el peso esta
+        # "doblado hacia adentro". Uso la rotacion doble Izquierda-Derecha para
+        # alinear primero el subarbol izquierdo y luego corregir el nodo desbalanceado.
+        if balance < -1 and obtener_balance(nodo.izquierda) > 0:
+            return rotacion_doble_izquierda_derecha(nodo)
+        
+        # Si el balance sigue siendo correcto (+-1 o 0), retorno el nodo sin cambios
         return nodo
     
     def _minimo(self, nodo):
