@@ -37,7 +37,6 @@ class Nodo:
         Redondeamos a 5 decimales como nos solicitaron.
         """
         try:
-    # Los convierte a float para evitar problemas de formato          
             rating = float(self.datos[3])
             positivas = float(self.datos[11])
             negativas = float(self.datos[12])
@@ -48,7 +47,6 @@ class Nodo:
                 valor = rating * 0.7 + ((5 * positivas + negativas + 3 * neutras) / total_reviews) * 0.3
                 return round(valor, 5)
             return 0.0
-        # tira error si algun campo no es convertible a float, en ese caso retornamos 0.0
         except:
             return 0.0
     
@@ -80,55 +78,16 @@ class Nodo:
         return self.datos[13] if len(self.datos) > 13 else "0"
 
 
-def rotacion_simple_derecha(nodo):
+def actualizar_altura(nodo):
     """
-    Realizamos rotación simple a la derecha cuando el árbol está desbalanceado
-    hacia la izquierda con el hijo izquierdo balanceado o con desbalance hacia la izquierda.
-    """
-    n_raiz = nodo.izquierda
-    nodo.izquierda = n_raiz.derecha
-    n_raiz.derecha = nodo
-    return n_raiz
-
-
-def rotacion_simple_izquierda(nodo):
-    """
-    Realizamos rotación simple a la izquierda cuando el árbol está desbalanceado
-    hacia la derecha con el hijo derecho balanceado o con desbalance hacia la derecha.
-    """
-    n_raiz = nodo.derecha
-    nodo.derecha = n_raiz.izquierda
-    n_raiz.izquierda = nodo
-    return n_raiz
-
-
-def rotacion_doble_izquierda_derecha(nodo):
-    """
-    Aplicamos rotación doble izquierda-derecha cuando el desbalance es izquierda-derecha.
-    Primero rotamos a la izquierda el hijo izquierdo, luego rotamos a la derecha el nodo.
-    """
-    nodo.izquierda = rotacion_simple_izquierda(nodo.izquierda)
-    n_raiz = rotacion_simple_derecha(nodo)
-    return n_raiz
-
-
-def rotacion_doble_derecha_izquierda(nodo):
-    """
-    Aplicamos rotación doble derecha-izquierda cuando el desbalance es derecha-izquierda.
-    Primero rotamos a la derecha el hijo derecho, luego rotamos a la izquierda el nodo.
-    """
-    nodo.derecha = rotacion_simple_derecha(nodo.derecha)
-    n_raiz = rotacion_simple_izquierda(nodo)
-    return n_raiz
-
-
-def altura(nodo):
-    """
-    Calculamos la altura de un nodo de forma recursiva.
+    Actualizamos la altura del nodo basado en sus hijos.
     """
     if nodo is None:
         return 0
-    return 1 + max(altura(nodo.izquierda), altura(nodo.derecha))
+    altura_izq = nodo.izquierda.altura if nodo.izquierda else 0
+    altura_der = nodo.derecha.altura if nodo.derecha else 0
+    nodo.altura = 1 + max(altura_izq, altura_der)
+    return nodo.altura
 
 
 def obtener_equilibrio(nodo):
@@ -137,7 +96,55 @@ def obtener_equilibrio(nodo):
     """
     if nodo is None:
         return 0
-    return altura(nodo.derecha) - altura(nodo.izquierda)
+    altura_izq = nodo.izquierda.altura if nodo.izquierda else 0
+    altura_der = nodo.derecha.altura if nodo.derecha else 0
+    return altura_der - altura_izq
+
+
+def rotacion_simple_derecha(nodo):
+    """
+    Realizamos rotación simple a la derecha.
+    """
+    n_raiz = nodo.izquierda
+    nodo.izquierda = n_raiz.derecha
+    n_raiz.derecha = nodo
+    
+    actualizar_altura(nodo)
+    actualizar_altura(n_raiz)
+    
+    return n_raiz
+
+
+def rotacion_simple_izquierda(nodo):
+    """
+    Realizamos rotación simple a la izquierda.
+    """
+    n_raiz = nodo.derecha
+    nodo.derecha = n_raiz.izquierda
+    n_raiz.izquierda = nodo
+    
+    actualizar_altura(nodo)
+    actualizar_altura(n_raiz)
+    
+    return n_raiz
+
+
+def rotacion_doble_izquierda_derecha(nodo):
+    """
+    Aplicamos rotación doble izquierda-derecha.
+    """
+    nodo.izquierda = rotacion_simple_izquierda(nodo.izquierda)
+    n_raiz = rotacion_simple_derecha(nodo)
+    return n_raiz
+
+
+def rotacion_doble_derecha_izquierda(nodo):
+    """
+    Aplicamos rotación doble derecha-izquierda.
+    """
+    nodo.derecha = rotacion_simple_derecha(nodo.derecha)
+    n_raiz = rotacion_simple_izquierda(nodo)
+    return n_raiz
 
 
 def equilibrar(nodo):
@@ -149,19 +156,18 @@ def equilibrar(nodo):
     
     equilibrio = obtener_equilibrio(nodo)
     
-    # Caso de desbalance hacia la izquierda (equilibrio > 1)
     if equilibrio > 1:
         if obtener_equilibrio(nodo.izquierda) >= 0:
-            return rotacion_simple_derecha(nodo)
+            nodo = rotacion_simple_derecha(nodo)
         else:
-            return rotacion_doble_izquierda_derecha(nodo)
-    
-    # Caso de desbalance hacia la derecha (equilibrio < -1)
-    if equilibrio < -1:
+            nodo = rotacion_doble_izquierda_derecha(nodo)
+    elif equilibrio < -1:
         if obtener_equilibrio(nodo.derecha) <= 0:
-            return rotacion_simple_izquierda(nodo)
+            nodo = rotacion_simple_izquierda(nodo)
         else:
-            return rotacion_doble_derecha_izquierda(nodo)
+            nodo = rotacion_doble_derecha_izquierda(nodo)
+    else:
+        actualizar_altura(nodo)
     
     return nodo
 
@@ -173,7 +179,6 @@ def equilibrar(nodo):
 def buscar_padre(raiz, nodo):
     """
     Buscamos el padre de un nodo de forma recursiva.
-    Retornamos None si no tiene padre (es la raíz).
     """
     if raiz is None:
         return None
@@ -218,7 +223,7 @@ def buscar_tio(raiz, nodo):
 
 def obtener_nivel(raiz, nodo, nivel_actual=0):
     """
-    Calculamos la profundidad de un nodo. La raíz está en nivel 0.
+    Calculamos la profundidad de un nodo.
     """
     if raiz is None:
         return -1
@@ -239,12 +244,11 @@ def obtener_nivel(raiz, nodo, nivel_actual=0):
 class ArbolAVL:
     """
     Implementamos el árbol AVL con auto-balanceo después de cada inserción y eliminación.
-    Usamos la satisfacción como clave de ordenamiento.
     """
     
     def __init__(self):
         self.raiz = None
-        self.dataset = {}  # Diccionario para acceder rápido a los datos por ID
+        self.dataset = {}
     
     def cargar_dataset(self, ruta_archivo):
         """
@@ -254,10 +258,9 @@ class ArbolAVL:
             self.dataset.clear()
             with open(ruta_archivo, newline='', encoding='utf-8') as archivo:
                 lector = csv.reader(archivo)
-                next(lector)  # Saltamos el encabezado
+                next(lector)
                 for fila in lector:
                     if fila and len(fila) > 0:
-                        # Aseguramos que tenga 14 campos
                         while len(fila) < 14:
                             fila.append("0")
                         self.dataset[fila[0]] = fila
@@ -267,11 +270,11 @@ class ArbolAVL:
     
     def _existe_satisfaccion(self, nodo, satisfaccion):
         """
-        Verificamos si ya existe un nodo con la misma satisfacción para evitar duplicados.
+        Verificamos si ya existe un nodo con la misma satisfacción.
         """
         if nodo is None:
             return False
-        if nodo.satisfaccion == satisfaccion:
+        if abs(nodo.satisfaccion - satisfaccion) < 0.00001:
             return True
         if satisfaccion < nodo.satisfaccion:
             return self._existe_satisfaccion(nodo.izquierda, satisfaccion)
@@ -280,8 +283,7 @@ class ArbolAVL:
     
     def _insertar_recursivo(self, nodo, nuevo):
         """
-        Insertamos recursivamente usando la satisfacción como clave de comparación.
-        Luego balanceamos el árbol.
+        Insertamos recursivamente usando la satisfacción como clave.
         """
         if nodo is None:
             return nuevo
@@ -291,15 +293,13 @@ class ArbolAVL:
         else:
             nodo.derecha = self._insertar_recursivo(nodo.derecha, nuevo)
         
-        # Actualizamos altura y balanceamos
-        nodo.altura = altura(nodo)
         nodo = equilibrar(nodo)
         
         return nodo
     
     def insertar(self, id_curso):
         """
-        Insertamos un nodo por su ID. Buscamos los datos en el dataset.
+        Insertamos un nodo por su ID.
         """
         if id_curso not in self.dataset:
             return False, f"El ID '{id_curso}' no existe en el dataset"
@@ -315,7 +315,7 @@ class ArbolAVL:
     
     def buscar_por_id(self, nodo, id_buscar):
         """
-        Buscamos un nodo por su ID recorriendo todo el árbol.
+        Buscamos un nodo por su ID.
         """
         if nodo is None:
             return None
@@ -329,11 +329,11 @@ class ArbolAVL:
     
     def buscar_por_satisfaccion(self, nodo, sat_buscar):
         """
-        Buscamos por satisfacción aprovechando la propiedad de BST.
+        Buscamos por satisfacción.
         """
         if nodo is None:
             return None
-        if nodo.satisfaccion == sat_buscar:
+        if abs(nodo.satisfaccion - sat_buscar) < 0.00001:
             return nodo
         if sat_buscar < nodo.satisfaccion:
             return self.buscar_por_satisfaccion(nodo.izquierda, sat_buscar)
@@ -363,7 +363,7 @@ class ArbolAVL:
     
     def _eliminar_recursivo(self, nodo, satisfaccion):
         """
-        Eliminamos recursivamente y balanceamos después de la eliminación.
+        Eliminamos recursivamente.
         """
         if nodo is None:
             return None
@@ -373,19 +373,16 @@ class ArbolAVL:
         elif satisfaccion > nodo.satisfaccion:
             nodo.derecha = self._eliminar_recursivo(nodo.derecha, satisfaccion)
         else:
-            # Caso 1: sin hijos o un hijo
             if nodo.izquierda is None:
                 return nodo.derecha
             elif nodo.derecha is None:
                 return nodo.izquierda
             
-            # Caso 2: dos hijos - reemplazamos con el sucesor inorden
             sucesor = self._minimo(nodo.derecha)
             nodo.datos = sucesor.datos
             nodo.satisfaccion = sucesor.satisfaccion
             nodo.derecha = self._eliminar_recursivo(nodo.derecha, sucesor.satisfaccion)
         
-        nodo.altura = altura(nodo)
         nodo = equilibrar(nodo)
         
         return nodo
@@ -450,7 +447,6 @@ class ArbolAVL:
     def recorrido_por_niveles(self):
         """
         Mostramos el recorrido por niveles (BFS) de forma recursiva.
-        Retornamos solo los identificadores como solicitaron.
         """
         if self.raiz is None:
             return []
@@ -485,7 +481,6 @@ class ArbolAVL:
     def buscar_4b_fecha_posterior(self, fecha_str):
         """
         Criterio 4b: fecha de creación posterior a la fecha dada.
-        Formato esperado: YYYY-MM-DD
         """
         try:
             fecha_ref = datetime.strptime(fecha_str, "%Y-%m-%d")
@@ -523,8 +518,7 @@ class ArbolAVL:
     
     def buscar_4d_sobre_promedio(self, tipo):
         """
-        Criterio 4d: reviews positivas, negativas o neutras superiores al promedio.
-        tipo puede ser "positivas", "negativas" o "neutras"
+        Criterio 4d: reviews superiores al promedio.
         """
         todos = self.recorrido_inorden()
         if not todos:
@@ -561,7 +555,6 @@ class ArbolAVL:
 class VisualizadorArbol(tk.Canvas):
     """
     Dibujamos el árbol gráficamente usando Canvas de tkinter.
-    Cada nodo muestra su ID y su nivel de satisfacción.
     """
     
     def __init__(self, parent, **kwargs):
@@ -658,7 +651,6 @@ class VisualizadorArbol(tk.Canvas):
 class VentanaInfo(tk.Toplevel):
     """
     Ventana emergente que muestra toda la información de un curso seleccionado.
-    También muestra nivel, factor de balance, padre, abuelo y tío.
     """
     
     def __init__(self, parent, nodo, arbol):
@@ -740,8 +732,7 @@ class VentanaInfo(tk.Toplevel):
 
 class VentanaResultados(tk.Toplevel):
     """
-    Ventana que muestra los resultados de las búsquedas especiales en forma de tabla.
-    Permite seleccionar un nodo y ver su información completa.
+    Ventana que muestra los resultados de las búsquedas especiales.
     """
     
     def __init__(self, parent, nodos, arbol, titulo="Resultados"):
@@ -813,7 +804,6 @@ class VentanaResultados(tk.Toplevel):
 class AplicacionAVL(tk.Tk):
     """
     Ventana principal que contiene todos los controles.
-    Integra todas las operaciones requeridas.
     """
     
     def __init__(self):
