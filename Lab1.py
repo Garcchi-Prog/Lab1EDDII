@@ -1027,17 +1027,21 @@ class VentanaInfo(tk.Toplevel):
         
         # Lista de tuplas (etiqueta, valor) para mostrar los datos del curso
         campos = [
-            ("ID:", nodo.get_id()),
-            ("Satisfaccion:", f"{nodo.satisfaccion:.5f}"),
-            ("Rating:", nodo.get_rating()),
-            ("Total Reviews:", nodo.get_reviews()),
-            ("Reviews Positivas:", nodo.get_positivas()),
-            ("Reviews Negativas:", nodo.get_negativas()),
-            ("Reviews Neutras:", nodo.get_neutras()),
-            ("Numero de Clases:", nodo.get_clases()),
-            ("Fecha Creacion:", nodo.get_fecha_creacion()),
-            ("Instructor ID:", nodo.datos[9] if len(nodo.datos) > 9 else ""),
-            ("URL:", nodo.datos[2] if len(nodo.datos) > 2 else ""),
+            ("ID:",                 nodo.datos[0]  if len(nodo.datos) > 0  else ""),
+            ("Titulo:",             nodo.datos[1]  if len(nodo.datos) > 1  else ""),
+            ("URL:",                nodo.datos[2]  if len(nodo.datos) > 2  else ""),
+            ("Rating:",             nodo.datos[3]  if len(nodo.datos) > 3  else ""),
+            ("Total Reviews:",      nodo.datos[4]  if len(nodo.datos) > 4  else ""),
+            ("Num. Clases:",        nodo.datos[5]  if len(nodo.datos) > 5  else ""),
+            ("Fecha Creacion:",     nodo.datos[6]  if len(nodo.datos) > 6  else ""),
+            ("Ultima Actualizacion:",          nodo.datos[7]  if len(nodo.datos) > 7  else ""),
+            ("Duración:",          nodo.datos[8]  if len(nodo.datos) > 8  else ""),
+            ("Instructor ID:",      nodo.datos[9]  if len(nodo.datos) > 9  else ""),
+            ("Imagen:",         nodo.datos[10] if len(nodo.datos) > 10 else ""),
+            ("Reviews Positivas:",  nodo.datos[11] if len(nodo.datos) > 11 else ""),
+            ("Reviews Negativas:",  nodo.datos[12] if len(nodo.datos) > 12 else ""),
+            ("Reviews Neutras:",    nodo.datos[13] if len(nodo.datos) > 13 else ""),
+            ("Satisfaccion:",       f"{nodo.satisfaccion:.5f}"),
         ]
         
         # Crear filas alternando colores para mejorar la legibilidad
