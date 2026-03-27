@@ -1,956 +1,1297 @@
-"""
-AVL Tree — Cursos Udemy  |  Estructura de Datos II
-Interfaz gráfica de escritorio — pantalla completa
-"""
-
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, scrolledtext
 import csv
 import os
 import random
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
 
-# ══════════════════════════════════════════════════════
-#  TEMA DE COLORES
-# ══════════════════════════════════════════════════════
-C = {
-    "bg"     : "#0E1117",
-    "panel"  : "#161B22",
-    "card"   : "#1C2128",
-    "border" : "#2D333B",
-    "blue"   : "#58A6FF",
-    "green"  : "#3FB950",
-    "red"    : "#F85149",
-    "purple" : "#BC8CFF",
-    "orange" : "#FFA657",
-    "yellow" : "#E3B341",
-    "t1"     : "#CDD9E5",
-    "t2"     : "#768390",
-    "t3"     : "#444C56",
-    "dark"   : "#0E1117",
-}
+# ============================================================
+# COLORES GLOBALES (simples, definidos como variables sueltas)
+# ============================================================
+COLOR_FONDO = "#2c3e50"
+COLOR_PANEL = "#34495e"
+COLOR_TARJETA = "#1C2128"
+COLOR_BORDE = "#7f8c8d"
+COLOR_BOTON = "#3498db"
+COLOR_EXITO = "#2ecc71"
+COLOR_ERROR = "#e74c3c"
+COLOR_ALERTA = "#f39c12"
+COLOR_TEXTO = "#ecf0f1"
+COLOR_TEXTO_SEC = "#bdc3c7"
 
-F = {
-    "title" : ("Segoe UI", 14, "bold"),
-    "head"  : ("Segoe UI", 10, "bold"),
-    "body"  : ("Segoe UI",  9),
-    "small" : ("Segoe UI",  8),
-    "mono"  : ("Consolas",  9),
-    "mono_s": ("Consolas",  8),
-}
-
-# ══════════════════════════════════════════════════════
-#  NODO
-# ══════════════════════════════════════════════════════
-class Node:
-    __slots__ = ("data","satis","izquierda","derecha","altura_nodo")
-
-    def __init__(self, data: list):
-        self.data        = data
-        self.satis       = self._sat()
-        self.izquierda   = None
-        self.derecha     = None
-        self.altura_nodo = 1
-
-    def _sat(self) -> float:
+# ============================================================
+# CLASE NODO
+# ============================================================
+class Nodo:
+    """
+    Clase que representa un nodo del arbol AVL.
+    Guarda los datos del curso y las referencias a hijos.
+    """
+    def __init__(self, datos):
+        # datos es una lista con los campos del CSV
+        self.datos = datos
+        # Calculamos la satisfaccion segun la formula del laboratorio
+        self.satisfaccion = self.calcular_satisfaccion()
+        self.izquierda = None
+        self.derecha = None
+        self.altura = 1  # altura inicial
+    
+    def calcular_satisfaccion(self):
+        """
+        Formula: rating * 0.7 + ((5*positivas + negativas + 3*neutras) / total) * 0.3
+        Resultado redondeado a 5 decimales
+        """
         try:
-            r  = float(self.data[3])
-            p  = float(self.data[11])
-            n  = float(self.data[12])
-            ne = float(self.data[13])
-            nr = float(self.data[4])
-            if nr:
-                return round(r*0.7 + ((5*p + n + 3*ne)/nr)*0.3, 5)
+            rating = float(self.datos[3])
+            positivas = float(self.datos[11])
+            negativas = float(self.datos[12])
+            neutras = float(self.datos[13])
+            total_reviews = float(self.datos[4])
+            
+            if total_reviews > 0:
+                valor = rating * 0.7 + ((5 * positivas + negativas + 3 * neutras) / total_reviews) * 0.3
+                return round(valor, 5)
             return 0.0
-        except Exception:
+        except:
             return 0.0
-
-    def _g(self, i, default=""):
-        return self.data[i] if len(self.data) > i else default
-
-    @property
-    def id(self):                     return self._g(0)
-    @property
-    def title(self):                  return self._g(1)
-    @property
-    def url(self):                    return self._g(2)
-    @property
-    def rating(self):                 return self._g(3,"0")
-    @property
-    def num_reviews(self):            return self._g(4,"0")
-    @property
-    def num_published_lectures(self): return self._g(5,"0")
-    @property
-    def created(self):                return self._g(6)
-    @property
-    def last_update_date(self):       return self._g(7)
-    @property
-    def duration(self):               return self._g(8,"0")
-    @property
-    def instructors_id(self):         return self._g(9)
-    @property
-    def image(self):                  return self._g(10)
-    @property
-    def positive_reviews(self):       return self._g(11,"0")
-    @property
-    def negative_reviews(self):       return self._g(12,"0")
-    @property
-    def neutral_reviews(self):        return self._g(13,"0")
+    
+    # Metodos para acceder a los campos facilmente
+    def get_id(self):
+        return self.datos[0] if len(self.datos) > 0 else ""
+    
+    def get_titulo(self):
+        return self.datos[1] if len(self.datos) > 1 else ""
+    
+    def get_rating(self):
+        return self.datos[3] if len(self.datos) > 3 else "0"
+    
+    def get_reviews(self):
+        return self.datos[4] if len(self.datos) > 4 else "0"
+    
+    def get_clases(self):
+        return self.datos[5] if len(self.datos) > 5 else "0"
+    
+    def get_fecha_creacion(self):
+        return self.datos[6] if len(self.datos) > 6 else ""
+    
+    def get_positivas(self):
+        return self.datos[11] if len(self.datos) > 11 else "0"
+    
+    def get_negativas(self):
+        return self.datos[12] if len(self.datos) > 12 else "0"
+    
+    def get_neutras(self):
+        return self.datos[13] if len(self.datos) > 13 else "0"
 
 
-# ══════════════════════════════════════════════════════
-#  FUNCIONES AVL
-# ══════════════════════════════════════════════════════
-def _h(n):  return n.altura_nodo if n else 0
-def _uh(n): n.altura_nodo = 1 + max(_h(n.izquierda), _h(n.derecha))
-def _eq(n): return (_h(n.izquierda) - _h(n.derecha)) if n else 0
+# ============================================================
+# FUNCIONES AUXILIARES DEL AVL
+# ============================================================
 
-def _rr(n):
-    r = n.izquierda
-    n.izquierda = r.derecha
-    r.derecha = n
-    _uh(n); _uh(r)
-    return r
+def obtener_altura(nodo):
+    """Devuelve la altura de un nodo (0 si es None)"""
+    if nodo is None:
+        return 0
+    return nodo.altura
 
-def _rl(n):
-    r = n.derecha
-    n.derecha = r.izquierda
-    r.izquierda = n
-    _uh(n); _uh(r)
-    return r
+def actualizar_altura(nodo):
+    """Actualiza la altura de un nodo basado en sus hijos"""
+    if nodo is not None:
+        alt_izq = obtener_altura(nodo.izquierda)
+        alt_der = obtener_altura(nodo.derecha)
+        nodo.altura = 1 + max(alt_izq, alt_der)
 
-def equilibrar(n):
-    if n is None: return None
-    _uh(n)
-    e = _eq(n)
-    if e > 1:
-        if _eq(n.izquierda) < 0: n.izquierda = _rl(n.izquierda)
-        return _rr(n)
-    if e < -1:
-        if _eq(n.derecha) > 0:   n.derecha = _rr(n.derecha)
-        return _rl(n)
-    return n
+def obtener_balance(nodo):
+    """Calcula el factor de balance: altura izq - altura der"""
+    if nodo is None:
+        return 0
+    return obtener_altura(nodo.izquierda) - obtener_altura(nodo.derecha)
 
-# ══════════════════════════════════════════════════════
-#  FUNCIONES RECURSIVAS REQUERIDAS
-# ══════════════════════════════════════════════════════
-def BuscarPadre(raiz, nodo):
-    if raiz is None: return None
-    if raiz.izquierda is nodo or raiz.derecha is nodo: return raiz
-    r = BuscarPadre(raiz.izquierda, nodo)
-    return r if r else BuscarPadre(raiz.derecha, nodo)
+def rotacion_derecha(y):
+    """
+    Rotacion simple a la derecha.
+    y es el nodo desbalanceado, x es su hijo izquierdo.
+    """
+    x = y.izquierda
+    temp = x.derecha
+    
+    # Realizar rotacion
+    x.derecha = y
+    y.izquierda = temp
+    
+    # Actualizar alturas
+    actualizar_altura(y)
+    actualizar_altura(x)
+    
+    return x
 
-def BuscarAbuelo(raiz, nodo):
-    p = BuscarPadre(raiz, nodo)
-    return BuscarPadre(raiz, p) if p else None
+def rotacion_izquierda(x):
+    """
+    Rotacion simple a la izquierda.
+    x es el nodo desbalanceado, y es su hijo derecho.
+    """
+    y = x.derecha
+    temp = y.izquierda
+    
+    # Realizar rotacion
+    y.izquierda = x
+    x.derecha = temp
+    
+    # Actualizar alturas
+    actualizar_altura(x)
+    actualizar_altura(y)
+    
+    return y
 
-def BuscarTio(raiz, nodo):
-    p = BuscarPadre(raiz, nodo)
-    if p is None: return None
-    ab = BuscarPadre(raiz, p)
-    if ab is None: return None
-    return ab.derecha if ab.izquierda is p else ab.izquierda
+# ============================================================
+# FUNCIONES RECURSIVAS REQUERIDAS POR EL LABORATORIO
+# ============================================================
 
-def obtener_nivel(raiz, nodo):
-    if raiz is None: return -1
-    if raiz is nodo: return 0
-    lvl = obtener_nivel(raiz.izquierda, nodo)
-    if lvl != -1: return lvl + 1
-    lvl = obtener_nivel(raiz.derecha, nodo)
-    return lvl + 1 if lvl != -1 else -1
-
-# ══════════════════════════════════════════════════════
-#  ÁRBOL AVL
-# ══════════════════════════════════════════════════════
-class AVLTree:
-    def __init__(self):
-        self.raiz: Optional[Node] = None
-        self._dataset: Dict[str, list] = {}
-
-    def cargar_dataset(self, path: str) -> str:
-        try:
-            self._dataset.clear()
-            with open(path, newline="", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                next(reader, None)
-                for row in reader:
-                    if row:
-                        while len(row) < 14: row.append("0")
-                        self._dataset[row[0]] = row
-            return f"Dataset cargado: {len(self._dataset):,} registros"
-        except Exception as e:
-            return f"Error: {e}"
-
-    def add_node(self, node_id: str) -> Tuple[bool, str]:
-        fila = self._dataset.get(node_id)
-        if fila is None: return False, f"ID '{node_id}' no existe."
-        nn = Node(fila)
-        ok, msg, self.raiz = self._ins(self.raiz, nn)
-        return ok, msg
-
-    def _ins(self, n, nn):
-        if n is None: return True, "Insertado.", nn
-        if nn.satis < n.satis:
-            ok, msg, n.izquierda = self._ins(n.izquierda, nn)
-        elif nn.satis > n.satis:
-            ok, msg, n.derecha = self._ins(n.derecha, nn)
-        else:
-            return False, "Satisfacción duplicada.", n
-        return ok, msg, equilibrar(n)
-
-    def delete_node(self, val: str, opt: str) -> Tuple[bool, str]:
-        nd = self.search_node(val, opt)
-        if nd is None: return False, "Nodo no encontrado."
-        self.raiz = self._del(self.raiz, nd.satis)
-        return True, f"ID {nd.id} eliminado."
-
-    def _del(self, n, s):
-        if n is None: return None
-        if s < n.satis:   n.izquierda = self._del(n.izquierda, s)
-        elif s > n.satis: n.derecha   = self._del(n.derecha, s)
-        else:
-            if n.izquierda is None: return n.derecha
-            if n.derecha   is None: return n.izquierda
-            suc = self._min(n.derecha)
-            n.data = suc.data; n.satis = suc.satis
-            n.derecha = self._del(n.derecha, suc.satis)
-        return equilibrar(n)
-
-    def _min(self, n):
-        while n.izquierda: n = n.izquierda
-        return n
-
-    def search_node(self, val: str, opt: str) -> Optional[Node]:
-        if opt == "id":    return self._bid(self.raiz, val)
-        if opt == "satis":
-            try:           return self._bsat(self.raiz, float(val))
-            except:        return None
+def buscar_padre(raiz, nodo):
+    """
+    Busca el padre de un nodo de forma recursiva.
+    Retorna el nodo padre o None si no tiene.
+    """
+    if raiz is None:
         return None
+    
+    # Verificar si la raiz actual es el padre
+    if raiz.izquierda is nodo or raiz.derecha is nodo:
+        return raiz
+    
+    # Buscar en subarbol izquierdo
+    padre_izq = buscar_padre(raiz.izquierda, nodo)
+    if padre_izq is not None:
+        return padre_izq
+    
+    # Buscar en subarbol derecho
+    return buscar_padre(raiz.derecha, nodo)
 
-    def _bid(self, n, id_):
-        if n is None: return None
-        if n.data[0] == id_: return n
-        r = self._bid(n.izquierda, id_)
-        return r if r else self._bid(n.derecha, id_)
+def buscar_abuelo(raiz, nodo):
+    """
+    Busca el abuelo de un nodo.
+    Primero encuentra el padre, luego el padre del padre.
+    """
+    padre = buscar_padre(raiz, nodo)
+    if padre is None:
+        return None
+    return buscar_padre(raiz, padre)
 
-    def _bsat(self, n, s):
-        if n is None: return None
-        if s == n.satis: return n
-        return self._bsat(n.izquierda, s) if s < n.satis else self._bsat(n.derecha, s)
+def buscar_tio(raiz, nodo):
+    """
+    Busca el tio de un nodo (hermano del padre).
+    """
+    padre = buscar_padre(raiz, nodo)
+    if padre is None:
+        return None
+    
+    abuelo = buscar_padre(raiz, padre)
+    if abuelo is None:
+        return None
+    
+    # El tio es el otro hijo del abuelo
+    if abuelo.izquierda is padre:
+        return abuelo.derecha
+    else:
+        return abuelo.izquierda
 
-    def todos(self) -> List[Node]:
-        out = []
-        def io(n):
-            if n: io(n.izquierda); out.append(n); io(n.derecha)
-        io(self.raiz); return out
+def obtener_nivel(raiz, nodo, nivel_actual=0):
+    """
+    Obtiene el nivel (profundidad) de un nodo.
+    La raiz es nivel 0.
+    """
+    if raiz is None:
+        return -1
+    if raiz is nodo:
+        return nivel_actual
+    
+    # Buscar en izquierda
+    nivel_izq = obtener_nivel(raiz.izquierda, nodo, nivel_actual + 1)
+    if nivel_izq != -1:
+        return nivel_izq
+    
+    # Buscar en derecha
+    return obtener_nivel(raiz.derecha, nodo, nivel_actual + 1)
 
-    def total_nodos(self) -> int: return len(self.todos())
+# ============================================================
+# CLASE ARBOL AVL
+# ============================================================
 
-    @staticmethod
-    def _f(v):
-        try: return float(v)
-        except: return 0.0
-
-    @staticmethod
-    def _i(v):
-        try: return int(float(v))
-        except: return 0
-
-    def buscar_4a(self):
-        return [n for n in self.todos()
-                if self._f(n.positive_reviews) > self._f(n.negative_reviews)+self._f(n.neutral_reviews)]
-
-    def buscar_4b(self, fecha_str: str):
+class ArbolAVL:
+    """
+    Implementacion del arbol AVL con operaciones basicas.
+    Se auto-balancea despues de cada insercion o eliminacion.
+    """
+    
+    def __init__(self):
+        self.raiz = None
+        self.dataset = {}  # diccionario para guardar los datos del CSV
+    
+    def cargar_dataset(self, ruta_archivo):
+        """
+        Carga el archivo CSV en memoria.
+        Retorna mensaje de exito o error.
+        """
         try:
-            ref = None
-            for fmt in ("%Y-%m-%d","%d/%m/%Y","%m/%d/%Y"):
-                try: ref = datetime.strptime(fecha_str, fmt); break
-                except: continue
-            if ref is None: return []
-            out = []
-            for n in self.todos():
-                try:
-                    fn = datetime.strptime(n.created[:10], "%Y-%m-%d")
-                    if fn > ref: out.append(n)
-                except: pass
-            return out
-        except: return []
-
-    def buscar_4c(self, mn, mx):
-        return [n for n in self.todos() if mn <= self._i(n.num_published_lectures) <= mx]
-
-    def buscar_4d(self, tipo: str):
-        todos = self.todos()
-        if not todos: return []
-        mapa = {"positivas": lambda n: self._f(n.positive_reviews),
-                "negativas":  lambda n: self._f(n.negative_reviews),
-                "neutras":    lambda n: self._f(n.neutral_reviews)}
-        fn   = mapa.get(tipo, mapa["positivas"])
-        vals = [fn(n) for n in todos]
-        prom = sum(vals) / len(vals)
-        return [n for n, v in zip(todos, vals) if v > prom]
-
-    def recorrido_niveles(self) -> List[List[str]]:
-        res = []
-        def bfs(nivel):
-            if not nivel: return
-            ids = [n.id for n in nivel if n]
-            if ids: res.append(ids)
-            sig = []
-            for n in nivel:
-                if n:
-                    if n.izquierda: sig.append(n.izquierda)
-                    if n.derecha:   sig.append(n.derecha)
-            bfs(sig)
-        if self.raiz: bfs([self.raiz])
-        return res
-
-
-# ══════════════════════════════════════════════════════
-#  CANVAS DEL ÁRBOL
-# ══════════════════════════════════════════════════════
-class TreeCanvas(tk.Canvas):
-    NR    = 28
-    V_GAP = 80
-
-    def __init__(self, parent, **kw):
-        super().__init__(parent, bg=C["bg"], highlightthickness=0, **kw)
-        self._tree = None
-        self._hl   = None
-        self._pos  = {}
-        self._ox   = 0; self._oy = 50
-        self._sc   = 1.0
-        self._dx   = 0; self._dy = 0
-        self.bind("<Configure>",     lambda _: self._draw())
-        self.bind("<ButtonPress-1>", self._press)
-        self.bind("<B1-Motion>",     self._drag)
-        self.bind("<MouseWheel>",    self._wheel)
-        self.bind("<Button-4>",      self._wheel)
-        self.bind("<Button-5>",      self._wheel)
-
-    def set_tree(self, tree, hl=None):
-        self._tree = tree; self._hl = hl; self._draw()
-
-    def reset_view(self):
-        self._ox=0; self._oy=50; self._sc=1.0; self._draw()
-
-    def _press(self, e): self._dx=e.x; self._dy=e.y
-
-    def _drag(self, e):
-        self._ox += e.x-self._dx; self._oy += e.y-self._dy
-        self._dx=e.x; self._dy=e.y; self._draw()
-
-    def _wheel(self, e):
-        f = 1.1 if (e.delta>0 or e.num==4) else 0.9
-        self._sc = max(0.15, min(4.0, self._sc*f))
-        self._draw()
-
-    def _draw(self):
-        self.delete("all")
-        if not self._tree or not self._tree.raiz:
-            w,h = self.winfo_width() or 600, self.winfo_height() or 400
-            self.create_text(w//2, h//2,
-                text="Árbol vacío  —  carga el dataset e inserta nodos",
-                fill=C["t2"], font=F["body"])
+            self.dataset.clear()
+            with open(ruta_archivo, newline='', encoding='utf-8') as archivo:
+                lector = csv.reader(archivo)
+                next(lector)  # saltar encabezado
+                for fila in lector:
+                    if fila and len(fila) > 0:
+                        # Asegurar que tenga 14 campos
+                        while len(fila) < 14:
+                            fila.append("0")
+                        self.dataset[fila[0]] = fila
+            return True, f"Dataset cargado: {len(self.dataset)} registros"
+        except Exception as e:
+            return False, f"Error al cargar: {str(e)}"
+    
+    def insertar(self, id_curso):
+        """
+        Inserta un nodo por su ID.
+        Busca los datos en el dataset y los inserta en el arbol.
+        """
+        if id_curso not in self.dataset:
+            return False, f"El ID '{id_curso}' no existe en el dataset"
+        
+        datos = self.dataset[id_curso]
+        nuevo_nodo = Nodo(datos)
+        
+        # Verificar si ya existe un nodo con esa satisfaccion
+        if self._existe_satisfaccion(self.raiz, nuevo_nodo.satisfaccion):
+            return False, "Ya existe un curso con esa misma satisfaccion"
+        
+        self.raiz = self._insertar_recursivo(self.raiz, nuevo_nodo)
+        return True, f"Curso '{nuevo_nodo.get_titulo()[:30]}' insertado"
+    
+    def _existe_satisfaccion(self, nodo, satisfaccion):
+        """Verifica si ya existe un nodo con esa satisfaccion"""
+        if nodo is None:
+            return False
+        if nodo.satisfaccion == satisfaccion:
+            return True
+        if satisfaccion < nodo.satisfaccion:
+            return self._existe_satisfaccion(nodo.izquierda, satisfaccion)
+        else:
+            return self._existe_satisfaccion(nodo.derecha, satisfaccion)
+    
+    def _insertar_recursivo(self, nodo, nuevo):
+        """
+        Insercion recursiva con balanceo.
+        """
+        # Caso base: llegamos a una hoja
+        if nodo is None:
+            return nuevo
+        
+        # Insertar segun valor de satisfaccion
+        if nuevo.satisfaccion < nodo.satisfaccion:
+            nodo.izquierda = self._insertar_recursivo(nodo.izquierda, nuevo)
+        else:
+            nodo.derecha = self._insertar_recursivo(nodo.derecha, nuevo)
+        
+        # Actualizar altura del nodo actual
+        actualizar_altura(nodo)
+        
+        # Obtener factor de balance
+        balance = obtener_balance(nodo)
+        
+        # Caso 1: Desbalance hacia la izquierda (Left Left)
+        if balance > 1 and nuevo.satisfaccion < nodo.izquierda.satisfaccion:
+            return rotacion_derecha(nodo)
+        
+        # Caso 2: Desbalance hacia la derecha (Right Right)
+        if balance < -1 and nuevo.satisfaccion > nodo.derecha.satisfaccion:
+            return rotacion_izquierda(nodo)
+        
+        # Caso 3: Left Right
+        if balance > 1 and nuevo.satisfaccion > nodo.izquierda.satisfaccion:
+            nodo.izquierda = rotacion_izquierda(nodo.izquierda)
+            return rotacion_derecha(nodo)
+        
+        # Caso 4: Right Left
+        if balance < -1 and nuevo.satisfaccion < nodo.derecha.satisfaccion:
+            nodo.derecha = rotacion_derecha(nodo.derecha)
+            return rotacion_izquierda(nodo)
+        
+        return nodo
+    
+    def eliminar(self, valor, tipo):
+        """
+        Elimina un nodo por ID o por satisfaccion.
+        tipo: "id" o "satis"
+        """
+        nodo_a_eliminar = None
+        
+        if tipo == "id":
+            nodo_a_eliminar = self.buscar_por_id(self.raiz, valor)
+        else:  # por satisfaccion
+            try:
+                sat = float(valor)
+                nodo_a_eliminar = self.buscar_por_satisfaccion(self.raiz, sat)
+            except:
+                return False, "Valor de satisfaccion invalido"
+        
+        if nodo_a_eliminar is None:
+            return False, "Nodo no encontrado"
+        
+        self.raiz = self._eliminar_recursivo(self.raiz, nodo_a_eliminar.satisfaccion)
+        return True, f"Nodo {nodo_a_eliminar.get_id()} eliminado"
+    
+    def buscar_por_id(self, nodo, id_buscar):
+        """Busqueda recursiva por ID (recorre todo el arbol)"""
+        if nodo is None:
+            return None
+        if nodo.get_id() == id_buscar:
+            return nodo
+        
+        # Buscar en ambos subarboles
+        izq = self.buscar_por_id(nodo.izquierda, id_buscar)
+        if izq:
+            return izq
+        return self.buscar_por_id(nodo.derecha, id_buscar)
+    
+    def buscar_por_satisfaccion(self, nodo, sat_buscar):
+        """Busqueda por satisfaccion (aprovecha el orden del BST)"""
+        if nodo is None:
+            return None
+        if nodo.satisfaccion == sat_buscar:
+            return nodo
+        if sat_buscar < nodo.satisfaccion:
+            return self.buscar_por_satisfaccion(nodo.izquierda, sat_buscar)
+        else:
+            return self.buscar_por_satisfaccion(nodo.derecha, sat_buscar)
+    
+    def _eliminar_recursivo(self, nodo, satisfaccion):
+        """
+        Eliminacion recursiva con balanceo.
+        """
+        if nodo is None:
+            return None
+        
+        # Buscar el nodo
+        if satisfaccion < nodo.satisfaccion:
+            nodo.izquierda = self._eliminar_recursivo(nodo.izquierda, satisfaccion)
+        elif satisfaccion > nodo.satisfaccion:
+            nodo.derecha = self._eliminar_recursivo(nodo.derecha, satisfaccion)
+        else:
+            # Nodo encontrado - 3 casos
+            
+            # Caso 1: sin hijos o un hijo
+            if nodo.izquierda is None:
+                return nodo.derecha
+            elif nodo.derecha is None:
+                return nodo.izquierda
+            
+            # Caso 2: dos hijos - buscar sucesor
+            sucesor = self._minimo(nodo.derecha)
+            nodo.datos = sucesor.datos
+            nodo.satisfaccion = sucesor.satisfaccion
+            nodo.derecha = self._eliminar_recursivo(nodo.derecha, sucesor.satisfaccion)
+        
+        # Actualizar altura
+        actualizar_altura(nodo)
+        
+        # Balancear
+        balance = obtener_balance(nodo)
+        
+        # Left Left
+        if balance > 1 and obtener_balance(nodo.izquierda) >= 0:
+            return rotacion_derecha(nodo)
+        
+        # Left Right
+        if balance > 1 and obtener_balance(nodo.izquierda) < 0:
+            nodo.izquierda = rotacion_izquierda(nodo.izquierda)
+            return rotacion_derecha(nodo)
+        
+        # Right Right
+        if balance < -1 and obtener_balance(nodo.derecha) <= 0:
+            return rotacion_izquierda(nodo)
+        
+        # Right Left
+        if balance < -1 and obtener_balance(nodo.derecha) > 0:
+            nodo.derecha = rotacion_derecha(nodo.derecha)
+            return rotacion_izquierda(nodo)
+        
+        return nodo
+    
+    def _minimo(self, nodo):
+        """Encuentra el nodo con valor minimo en un subarbol"""
+        actual = nodo
+        while actual.izquierda is not None:
+            actual = actual.izquierda
+        return actual
+    
+    def buscar(self, valor, tipo):
+        """Metodo publico para buscar"""
+        if tipo == "id":
+            return self.buscar_por_id(self.raiz, valor)
+        else:
+            try:
+                return self.buscar_por_satisfaccion(self.raiz, float(valor))
+            except:
+                return None
+    
+    def recorrido_inorden(self):
+        """Retorna lista de nodos en orden"""
+        resultado = []
+        self._inorden(self.raiz, resultado)
+        return resultado
+    
+    def _inorden(self, nodo, lista):
+        if nodo:
+            self._inorden(nodo.izquierda, lista)
+            lista.append(nodo)
+            self._inorden(nodo.derecha, lista)
+    
+    def recorrido_por_niveles(self):
+        """
+        Recorrido BFS (por niveles) implementado recursivamente.
+        Retorna lista de listas, donde cada sublista es un nivel.
+        """
+        if self.raiz is None:
+            return []
+        
+        resultado = []
+        self._bfs_recursivo([self.raiz], resultado)
+        return resultado
+    
+    def _bfs_recursivo(self, nivel_actual, resultado):
+        """Funcion auxiliar recursiva para BFS"""
+        if not nivel_actual:
             return
-        self._pos.clear()
-        w = self.winfo_width() or 800
-        self._layout(self._tree.raiz, 0, 0, w)
-        self._edges(self._tree.raiz)
-        self._nodes(self._tree.raiz)
+        
+        # Guardar IDs del nivel actual
+        ids_nivel = [nodo.get_id() for nodo in nivel_actual]
+        resultado.append(ids_nivel)
+        
+        # Construir siguiente nivel
+        siguiente_nivel = []
+        for nodo in nivel_actual:
+            if nodo.izquierda:
+                siguiente_nivel.append(nodo.izquierda)
+            if nodo.derecha:
+                siguiente_nivel.append(nodo.derecha)
+        
+        # Llamada recursiva
+        self._bfs_recursivo(siguiente_nivel, resultado)
+    
+    def contar_nodos(self):
+        """Cuenta total de nodos en el arbol"""
+        return len(self.recorrido_inorden())
+    
+    # ============================================================
+    # BUSQUEDAS ESPECIALES (punto 4 del laboratorio)
+    # ============================================================
+    
+    def buscar_4a_positivas_mayores(self):
+        """
+        4a: Reviews positivas > (negativas + neutras)
+        """
+        resultado = []
+        todos = self.recorrido_inorden()
+        
+        for nodo in todos:
+            pos = float(nodo.get_positivas())
+            neg = float(nodo.get_negativas())
+            neu = float(nodo.get_neutras())
+            
+            if pos > (neg + neu):
+                resultado.append(nodo)
+        
+        return resultado
+    
+    def buscar_4b_fecha_posterior(self, fecha_str):
+        """
+        4b: Fecha de creacion posterior a la dada.
+        Formato esperado: YYYY-MM-DD
+        """
+        try:
+            fecha_ref = datetime.strptime(fecha_str, "%Y-%m-%d")
+            resultado = []
+            todos = self.recorrido_inorden()
+            
+            for nodo in todos:
+                try:
+                    fecha_nodo = datetime.strptime(nodo.get_fecha_creacion()[:10], "%Y-%m-%d")
+                    if fecha_nodo > fecha_ref:
+                        resultado.append(nodo)
+                except:
+                    continue
+            
+            return resultado
+        except:
+            return []
+    
+    def buscar_4c_rango_clases(self, min_clases, max_clases):
+        """
+        4c: Cantidad de clases dentro de un rango [min, max]
+        """
+        resultado = []
+        todos = self.recorrido_inorden()
+        
+        for nodo in todos:
+            try:
+                clases = int(nodo.get_clases())
+                if min_clases <= clases <= max_clases:
+                    resultado.append(nodo)
+            except:
+                continue
+        
+        return resultado
+    
+    def buscar_4d_sobre_promedio(self, tipo):
+        """
+        4d: Reviews positivas, negativas o neutras superiores al promedio.
+        tipo: "positivas", "negativas" o "neutras"
+        """
+        todos = self.recorrido_inorden()
+        if not todos:
+            return []
+        
+        # Calcular promedio segun el tipo
+        if tipo == "positivas":
+            valores = [float(n.get_positivas()) for n in todos]
+        elif tipo == "negativas":
+            valores = [float(n.get_negativas()) for n in todos]
+        else:  # neutras
+            valores = [float(n.get_neutras()) for n in todos]
+        
+        promedio = sum(valores) / len(valores)
+        
+        # Filtrar los que estan sobre el promedio
+        resultado = []
+        for nodo in todos:
+            if tipo == "positivas":
+                valor = float(nodo.get_positivas())
+            elif tipo == "negativas":
+                valor = float(nodo.get_negativas())
+            else:
+                valor = float(nodo.get_neutras())
+            
+            if valor > promedio:
+                resultado.append(nodo)
+        
+        return resultado
 
-    def _layout(self, n, d, lo, hi):
-        if n is None: return
-        mid = (lo+hi)/2
-        self._pos[n.id] = (int(mid+self._ox), int(d*self.V_GAP*self._sc+self._oy))
-        self._layout(n.izquierda, d+1, lo, mid)
-        self._layout(n.derecha,   d+1, mid, hi)
 
-    def _edges(self, n):
-        if n is None: return
-        if n.id in self._pos:
-            px,py = self._pos[n.id]
-            for child in (n.izquierda, n.derecha):
-                if child and child.id in self._pos:
-                    cx,cy = self._pos[child.id]
-                    self.create_line(px,py,cx,cy, fill=C["border"], width=1)
-        self._edges(n.izquierda); self._edges(n.derecha)
+# ============================================================
+# VISUALIZACION CON CANVAS
+# ============================================================
 
-    def _nodes(self, n):
-        if n is None or n.id not in self._pos: return
-        x,y = self._pos[n.id]
-        r   = max(7, int(self.NR*self._sc))
-        eq  = _eq(n)
-        hl  = (n.id == self._hl)
+class VisualizadorArbol(tk.Canvas):
+    """
+    Canvas personalizado para dibujar el arbol AVL.
+    Usa circulos para nodos y lineas para conexiones.
+    """
+    
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, bg="white", highlightthickness=1, **kwargs)
+        self.arbol = None
+        self.nodo_resaltado = None
+        self.posiciones = {}
+        
+        # Configurar scroll
+        self.config(scrollregion=(0, 0, 2000, 1500))
+    
+    def dibujar_arbol(self, arbol, nodo_resaltado=None):
+        """Dibuja el arbol completo"""
+        self.delete("all")
+        self.arbol = arbol
+        self.nodo_resaltado = nodo_resaltado
+        self.posiciones = {}
+        
+        if arbol is None or arbol.raiz is None:
+            self.create_text(400, 300, text="Arbol vacio", font=("Arial", 16))
+            return
+        
+        # Calcular posiciones
+        self._calcular_posiciones(arbol.raiz, 400, 50, 200)
+        
+        # Dibujar conexiones primero (para que queden detras)
+        self._dibujar_conexiones(arbol.raiz)
+        
+        # Dibujar nodos
+        self._dibujar_nodos(arbol.raiz)
+    
+    def _calcular_posiciones(self, nodo, x, y, separacion):
+        """Calcula las coordenadas de cada nodo"""
+        if nodo is None:
+            return
+        
+        self.posiciones[nodo.get_id()] = (x, y)
+        
+        # Hijo izquierdo: va a la izquierda y abajo
+        if nodo.izquierda:
+            self._calcular_posiciones(nodo.izquierda, x - separacion, y + 80, separacion // 2)
+        
+        # Hijo derecho: va a la derecha y abajo
+        if nodo.derecha:
+            self._calcular_posiciones(nodo.derecha, x + separacion, y + 80, separacion // 2)
+    
+    def _dibujar_conexiones(self, nodo):
+        """Dibuja las lineas entre nodos"""
+        if nodo is None or nodo.get_id() not in self.posiciones:
+            return
+        
+        x, y = self.posiciones[nodo.get_id()]
+        
+        # Linea al hijo izquierdo
+        if nodo.izquierda and nodo.izquierda.get_id() in self.posiciones:
+            x_izq, y_izq = self.posiciones[nodo.izquierda.get_id()]
+            self.create_line(x, y + 20, x_izq, y_izq - 20, fill="#7f8c8d", width=2)
+            self._dibujar_conexiones(nodo.izquierda)
+        
+        # Linea al hijo derecho
+        if nodo.derecha and nodo.derecha.get_id() in self.posiciones:
+            x_der, y_der = self.posiciones[nodo.derecha.get_id()]
+            self.create_line(x, y + 20, x_der, y_der - 20, fill="#7f8c8d", width=2)
+            self._dibujar_conexiones(nodo.derecha)
+    
+    def _dibujar_nodos(self, nodo):
+        """Dibuja los circulos de los nodos"""
+        if nodo is None or nodo.get_id() not in self.posiciones:
+            return
+        
+        x, y = self.posiciones[nodo.get_id()]
+        
+        # Determinar color segun balance
+        balance = obtener_balance(nodo)
+        
+        if self.nodo_resaltado == nodo.get_id():
+            color_borde = COLOR_ALERTA
+            color_relleno = "#fff3cd"
+        elif balance == 0:
+            color_borde = COLOR_EXITO  # verde = balanceado
+            color_relleno = "#d5f4e6"
+        elif abs(balance) == 1:
+            color_borde = COLOR_BOTON  # azul = casi balanceado
+            color_relleno = "#d6eaf8"
+        else:
+            color_borde = COLOR_ERROR  # rojo = desbalanceado (no deberia pasar en AVL)
+            color_relleno = "#fadbd8"
+        
+        # Dibujar circulo
+        radio = 25
+        self.create_oval(x - radio, y - radio, x + radio, y + radio,
+                          fill=color_relleno, outline=color_borde, width=2)
+        
+        # Dibujar ID (truncado si es muy largo)
+        id_texto = nodo.get_id()[:8]
+        self.create_text(x, y - 5, text=id_texto, font=("Arial", 9, "bold"))
+        
+        # Dibujar satisfaccion (3 decimales)
+        self.create_text(x, y + 10, text=f"{nodo.satisfaccion:.3f}", 
+                        font=("Arial", 7), fill="#555")
+        
+        # Recursivamente dibujar hijos
+        self._dibujar_nodos(nodo.izquierda)
+        self._dibujar_nodos(nodo.derecha)
 
-        if hl:                   fill, ring = C["orange"], C["orange"]
-        elif eq == 0:            fill, ring = C["card"],   C["green"]
-        elif abs(eq) == 1:       fill, ring = C["card"],   C["blue"]
-        else:                    fill, ring = C["card"],   C["red"]
 
-        self.create_oval(x-r+2,y-r+2,x+r+2,y+r+2, fill="#00000055", outline="")
-        self.create_oval(x-r,y-r,x+r,y+r, fill=fill, outline=ring,
-                         width=2 if hl else 1)
-        fs = max(5, int(8*self._sc))
-        self.create_text(x, y-3, text=n.id[:7], fill=C["t1"],
-                         font=("Consolas", fs, "bold"))
-        self.create_text(x, y+fs, text=f"{n.satis:.3f}", fill=C["t2"],
-                         font=("Consolas", max(5,fs-1)))
-        self._nodes(n.izquierda); self._nodes(n.derecha)
+# ============================================================
+# VENTANA DE INFORMACION DEL NODO
+# ============================================================
 
-
-# ══════════════════════════════════════════════════════
-#  DIÁLOGO: INFO DEL NODO
-# ══════════════════════════════════════════════════════
-class NodeInfoDialog(tk.Toplevel):
-    def __init__(self, parent, node: Node, tree: AVLTree):
+class VentanaInfo(tk.Toplevel):
+    """Ventana emergente que muestra toda la informacion de un curso"""
+    
+    def __init__(self, parent, nodo, arbol):
         super().__init__(parent)
-        self.title(f"Curso — {node.id}")
-        self.configure(bg=C["panel"])
-        self.geometry("660x560")
+        self.title(f"Informacion del Curso - {nodo.get_id()}")
+        self.geometry("550x500")
+        self.configure(bg=COLOR_PANEL)
         self.resizable(True, True)
-
-        padre  = BuscarPadre(tree.raiz, node)
-        abuelo = BuscarAbuelo(tree.raiz, node)
-        tio    = BuscarTio(tree.raiz, node)
-        nivel  = obtener_nivel(tree.raiz, node)
-        eq     = _eq(node)
-
-        tk.Label(self, text=node.title, bg=C["panel"], fg=C["blue"],
-                 font=F["head"], wraplength=630, justify="left",
-                 padx=16, pady=8).pack(anchor="w")
-
-        nb = ttk.Notebook(self)
-        nb.pack(fill="both", expand=True, padx=12, pady=(0,12))
-
-        # Tab datos
-        t1 = tk.Frame(nb, bg=C["card"])
-        nb.add(t1, text="  Datos del Curso  ")
-        filas = [
-            ("ID",            node.id),
-            ("Satisfacción",  f"{node.satis:.5f}"),
-            ("Rating",        node.rating),
-            ("Nº Reseñas",    node.num_reviews),
-            ("Reseñas +",     node.positive_reviews),
-            ("Reseñas −",     node.negative_reviews),
-            ("Reseñas ~",     node.neutral_reviews),
-            ("Clases",        node.num_published_lectures),
-            ("Duración",      node.duration),
-            ("Creado",        node.created),
-            ("Actualizado",   node.last_update_date),
-            ("Instructor ID", node.instructors_id),
-            ("URL",           node.url[:70]),
+        
+        # Frame principal
+        frame = tk.Frame(self, bg=COLOR_PANEL)
+        frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Titulo del curso
+        lbl_titulo = tk.Label(frame, text=nodo.get_titulo(), 
+                             font=("Arial", 12, "bold"),
+                             bg=COLOR_PANEL, fg=COLOR_BOTON, wraplength=500)
+        lbl_titulo.pack(anchor="w", pady=(0, 10))
+        
+        # Notebook (pestanas)
+        notebook = ttk.Notebook(frame)
+        notebook.pack(fill="both", expand=True, pady=10)
+        
+        # Pestaña 1: Datos del curso
+        tab1 = tk.Frame(notebook, bg=COLOR_TARJETA)
+        notebook.add(tab1, text="Datos del Curso")
+        
+        campos = [
+            ("ID:", nodo.get_id()),
+            ("Satisfaccion:", f"{nodo.satisfaccion:.5f}"),
+            ("Rating:", nodo.get_rating()),
+            ("Total Reviews:", nodo.get_reviews()),
+            ("Reviews Positivas:", nodo.get_positivas()),
+            ("Reviews Negativas:", nodo.get_negativas()),
+            ("Reviews Neutras:", nodo.get_neutras()),
+            ("Numero de Clases:", nodo.get_clases()),
+            ("Fecha Creacion:", nodo.get_fecha_creacion()),
+            ("Instructor ID:", nodo.datos[9] if len(nodo.datos) > 9 else ""),
+            ("URL:", nodo.datos[2] if len(nodo.datos) > 2 else ""),
         ]
-        for i,(k,v) in enumerate(filas):
-            bg = C["card"] if i%2==0 else C["panel"]
-            row = tk.Frame(t1, bg=bg); row.pack(fill="x")
-            tk.Label(row, text=k, bg=bg, fg=C["t2"], font=F["small"],
-                     width=16, anchor="e").pack(side="left", padx=(8,4), pady=3)
-            tk.Label(row, text=v, bg=bg, fg=C["t1"], font=F["mono_s"],
-                     anchor="w").pack(side="left", padx=4)
-
-        # Tab árbol/familia
-        t2 = tk.Frame(nb, bg=C["card"])
-        nb.add(t2, text="  Árbol / Familia  ")
-        arbol_rows = [
-            ("Nivel",             str(nivel),                                          C["green"]),
-            ("Factor Equilibrio", str(eq),                                             C["blue"]),
-            ("Padre",   f"{padre.id} · {padre.title[:35]}"   if padre  else "Sin padre (raíz)", C["t1"]),
-            ("Abuelo",  f"{abuelo.id} · {abuelo.title[:35]}" if abuelo else "Sin abuelo",       C["t1"]),
-            ("Tío",     f"{tio.id} · {tio.title[:35]}"       if tio    else "Sin tío",          C["t1"]),
+        
+        for i, (etiqueta, valor) in enumerate(campos):
+            fila = tk.Frame(tab1, bg=COLOR_TARJETA if i % 2 == 0 else COLOR_PANEL)
+            fila.pack(fill="x")
+            tk.Label(fila, text=etiqueta, width=15, anchor="e",
+                    bg=fila["bg"], fg=COLOR_TEXTO_SEC).pack(side="left", padx=5, pady=3)
+            tk.Label(fila, text=valor, anchor="w",
+                    bg=fila["bg"], fg=COLOR_TEXTO).pack(side="left", padx=5, pady=3)
+        
+        # Pestaña 2: Informacion del Arbol
+        tab2 = tk.Frame(notebook, bg=COLOR_TARJETA)
+        notebook.add(tab2, text="En el Arbol")
+        
+        # Buscar relaciones
+        padre = buscar_padre(arbol.raiz, nodo)
+        abuelo = buscar_abuelo(arbol.raiz, nodo)
+        tio = buscar_tio(arbol.raiz, nodo)
+        nivel = obtener_nivel(arbol.raiz, nodo)
+        balance = obtener_balance(nodo)
+        
+        info_arbol = [
+            ("Nivel en el arbol:", str(nivel)),
+            ("Factor de Balance:", str(balance)),
+            ("Padre:", f"{padre.get_id()} - {padre.get_titulo()[:30]}" if padre else "No tiene (es la raiz)"),
+            ("Abuelo:", f"{abuelo.get_id()} - {abuelo.get_titulo()[:30]}" if abuelo else "No tiene abuelo"),
+            ("Tio:", f"{tio.get_id()} - {tio.get_titulo()[:30]}" if tio else "No tiene tio"),
         ]
-        for i,(k,v,col) in enumerate(arbol_rows):
-            bg = C["card"] if i%2==0 else C["panel"]
-            row = tk.Frame(t2, bg=bg); row.pack(fill="x")
-            tk.Label(row, text=k, bg=bg, fg=C["t2"], font=F["small"],
-                     width=18, anchor="e").pack(side="left", padx=(8,4), pady=5)
-            tk.Label(row, text=v, bg=bg, fg=col, font=F["mono_s"],
-                     anchor="w").pack(side="left", padx=4)
+        
+        for i, (etiqueta, valor) in enumerate(info_arbol):
+            fila = tk.Frame(tab2, bg=COLOR_TARJETA if i % 2 == 0 else COLOR_PANEL)
+            fila.pack(fill="x")
+            tk.Label(fila, text=etiqueta, width=15, anchor="e",
+                    bg=fila["bg"], fg=COLOR_TEXTO_SEC).pack(side="left", padx=5, pady=5)
+            tk.Label(fila, text=valor, anchor="w",
+                    bg=fila["bg"], fg=COLOR_TEXTO).pack(side="left", padx=5, pady=5)
+        
+        # Boton cerrar
+        btn_cerrar = tk.Button(frame, text="Cerrar", command=self.destroy,
+                              bg=COLOR_BOTON, fg="white", width=15)
+        btn_cerrar.pack(pady=15)
 
-        tk.Button(self, text="Cerrar", command=self.destroy,
-                  bg=C["blue"], fg=C["dark"], font=F["body"],
-                  relief="flat", padx=24, pady=5, cursor="hand2").pack(pady=10)
 
+# ============================================================
+# VENTANA DE RESULTADOS DE BUSQUEDA
+# ============================================================
 
-# ══════════════════════════════════════════════════════
-#  PANEL: RESULTADOS DE BÚSQUEDA
-# ══════════════════════════════════════════════════════
-class ResultsPanel(tk.Toplevel):
-    def __init__(self, parent, nodos: List[Node], tree: AVLTree, title="Resultados"):
+class VentanaResultados(tk.Toplevel):
+    """Muestra los resultados de busqueda avanzada en una tabla"""
+    
+    def __init__(self, parent, nodos, arbol, titulo="Resultados"):
         super().__init__(parent)
-        self.title(title)
-        self.configure(bg=C["panel"])
-        self.geometry("820x480")
+        self.title(titulo)
+        self.geometry("700x400")
+        self.configure(bg=COLOR_PANEL)
+        
+        self.arbol = arbol
+        self.nodos = {n.get_id(): n for n in nodos}  # diccionario para acceso rapido
+        
+        # Header
+        header = tk.Frame(self, bg=COLOR_PANEL)
+        header.pack(fill="x", padx=10, pady=10)
+        tk.Label(header, text=titulo, font=("Arial", 11, "bold"),
+                bg=COLOR_PANEL, fg=COLOR_BOTON).pack(side="left")
+        tk.Label(header, text=f"  ({len(nodos)} resultados)",
+                bg=COLOR_PANEL, fg=COLOR_TEXTO_SEC).pack(side="left")
+        
+        # Tabla (Treeview)
+        columnas = ("id", "titulo", "satisfaccion", "rating", "reviews", "clases")
+        self.tabla = ttk.Treeview(self, columns=columnas, show="headings")
+        
+        # Configurar columnas
+        self.tabla.heading("id", text="ID")
+        self.tabla.heading("titulo", text="Titulo")
+        self.tabla.heading("satisfaccion", text="Satisfaccion")
+        self.tabla.heading("rating", text="Rating")
+        self.tabla.heading("reviews", text="Reviews")
+        self.tabla.heading("clases", text="Clases")
+        
+        self.tabla.column("id", width=80, anchor="center")
+        self.tabla.column("titulo", width=250, anchor="w")
+        self.tabla.column("satisfaccion", width=100, anchor="center")
+        self.tabla.column("rating", width=70, anchor="center")
+        self.tabla.column("reviews", width=70, anchor="center")
+        self.tabla.column("clases", width=60, anchor="center")
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tabla.yview)
+        self.tabla.configure(yscrollcommand=scrollbar.set)
+        
+        self.tabla.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=10)
+        scrollbar.pack(side="left", fill="y", pady=10, padx=(0, 10))
+        
+        # Insertar datos
+        for nodo in nodos:
+            self.tabla.insert("", "end", iid=nodo.get_id(), values=(
+                nodo.get_id(),
+                nodo.get_titulo()[:40],
+                f"{nodo.satisfaccion:.5f}",
+                nodo.get_rating(),
+                nodo.get_reviews(),
+                nodo.get_clases()
+            ))
+        
+        # Evento doble clic
+        self.tabla.bind("<Double-1>", self._mostrar_info)
+        
+        # Label instruccion
+        tk.Label(self, text="Doble clic en una fila para ver informacion completa",
+                bg=COLOR_PANEL, fg=COLOR_TEXTO_SEC, font=("Arial", 9)).pack(pady=(0, 10))
+    
+    def _mostrar_info(self, event):
+        """Abre ventana de info al hacer doble clic"""
+        seleccion = self.tabla.selection()
+        if seleccion:
+            nodo_id = seleccion[0]
+            if nodo_id in self.nodos:
+                VentanaInfo(self, self.nodos[nodo_id], self.arbol)
 
-        hdr = tk.Frame(self, bg=C["panel"]); hdr.pack(fill="x", padx=14, pady=8)
-        tk.Label(hdr, text=title, bg=C["panel"], fg=C["blue"],
-                 font=F["head"]).pack(side="left")
-        tk.Label(hdr, text=f"  {len(nodos)} resultado(s)", bg=C["panel"],
-                 fg=C["t2"], font=F["small"]).pack(side="left")
 
-        cols = ("id","titulo","satisfaccion","rating","reseñas","clases")
-        tv   = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse")
-        for c,w,t in [("id",90,"ID"),("titulo",280,"Título"),
-                      ("satisfaccion",110,"Satisfacción"),
-                      ("rating",75,"Rating"),("reseñas",80,"Reseñas"),
-                      ("clases",65,"Clases")]:
-            tv.heading(c, text=t)
-            tv.column(c, width=w, anchor="center" if c!="titulo" else "w")
+# ============================================================
+# APLICACION PRINCIPAL
+# ============================================================
 
-        sb = ttk.Scrollbar(self, orient="vertical", command=tv.yview)
-        tv.configure(yscrollcommand=sb.set)
-        tv.pack(side="left", fill="both", expand=True, padx=(14,0), pady=(0,14))
-        sb.pack(side="left", fill="y", pady=(0,14), padx=(0,8))
-
-        for n in nodos:
-            tv.insert("","end", iid=n.id,
-                      values=(n.id, n.title[:45], f"{n.satis:.5f}",
-                              n.rating, n.num_reviews, n.num_published_lectures))
-
-        def dbl(e):
-            sel = tv.selection()
-            if sel:
-                nd = tree._bid(tree.raiz, sel[0])
-                if nd: NodeInfoDialog(self, nd, tree)
-
-        tv.bind("<Double-1>", dbl)
-        tk.Label(self, text="Doble clic → información completa del curso",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(pady=(0,8))
-
-
-# ══════════════════════════════════════════════════════
-#  APLICACIÓN PRINCIPAL
-# ══════════════════════════════════════════════════════
-class App(tk.Tk):
+class AplicacionAVL(tk.Tk):
+    """Ventana principal de la aplicacion"""
+    
     def __init__(self):
         super().__init__()
-        self.title("Árbol AVL — Cursos Udemy  |  Estructura de Datos II")
-        self.configure(bg=C["bg"])
-        self.state("zoomed")
-        try: self.attributes("-zoomed", True)
-        except: pass
-
-        self._tree = AVLTree()
-        self._apply_styles()
-        self._build()
-        self._log("Bienvenido al sistema AVL — Cursos Udemy.", "info")
-        self._log("Carga el CSV con el botón  ▸ Cargar CSV  en la pestaña Operaciones.", "info")
-
-    def _apply_styles(self):
-        s = ttk.Style(self)
-        s.theme_use("clam")
-        s.configure(".", background=C["panel"], foreground=C["t1"],
-                    font=F["body"], borderwidth=0)
-        s.configure("TNotebook",      background=C["bg"],    borderwidth=0)
-        s.configure("TNotebook.Tab",  background=C["card"],  foreground=C["t2"],
-                    padding=[10,4],   font=F["small"])
-        s.map("TNotebook.Tab",
-              background=[("selected", C["panel"])],
-              foreground=[("selected", C["t1"])])
-        s.configure("TScrollbar",     background=C["border"], troughcolor=C["card"],
-                    arrowcolor=C["t2"], relief="flat")
-        s.configure("TCombobox",      fieldbackground=C["card"], background=C["card"],
-                    foreground=C["t1"], arrowcolor=C["t2"])
-        s.configure("Treeview",
-            background=C["card"], fieldbackground=C["card"],
-            foreground=C["t1"], rowheight=20, font=F["mono_s"])
-        s.configure("Treeview.Heading",
-            background=C["panel"], foreground=C["t2"], font=F["small"])
-        s.map("Treeview", background=[("selected", C["blue"])])
-
-    # ────────────────────────────────────────────────
-    #  CONSTRUCCIÓN UI
-    # ────────────────────────────────────────────────
-    def _build(self):
-        # Topbar
-        top = tk.Frame(self, bg=C["panel"], height=42)
-        top.pack(fill="x"); top.pack_propagate(False)
-        tk.Label(top, text="🌳  AVL Tree — Udemy Courses",
-                 bg=C["panel"], fg=C["blue"], font=F["title"],
-                 padx=16).pack(side="left", pady=6)
-        self._sv_nodes = tk.StringVar(value="Nodos: 0")
-        self._sv_ds    = tk.StringVar(value="Sin dataset")
-        tk.Label(top, textvariable=self._sv_ds,    bg=C["panel"], fg=C["t2"],    font=F["small"]).pack(side="right", padx=16)
-        tk.Label(top, textvariable=self._sv_nodes, bg=C["panel"], fg=C["green"], font=F["body"]).pack(side="right", padx=8)
-        tk.Frame(self, bg=C["border"], height=1).pack(fill="x")
-
-        body = tk.Frame(self, bg=C["bg"])
-        body.pack(fill="both", expand=True)
-
-        # Panel izquierdo — tabs
-        left = tk.Frame(body, bg=C["panel"], width=330)
-        left.pack(side="left", fill="y"); left.pack_propagate(False)
-        self._build_left(left)
-
-        # Centro — árbol
-        mid = tk.Frame(body, bg=C["bg"])
-        mid.pack(side="left", fill="both", expand=True)
-        self._build_center(mid)
-
-        # Derecha — log
-        right = tk.Frame(body, bg=C["panel"], width=265)
-        right.pack(side="right", fill="y"); right.pack_propagate(False)
-        self._build_log(right)
-
-    # ── Panel izquierdo ─────────────────────────────
-    def _build_left(self, parent):
-        nb = ttk.Notebook(parent)
-        nb.pack(fill="both", expand=True, padx=2, pady=2)
-
-        t1 = self._scrollable_tab(nb, "Operaciones")
-        t2 = self._scrollable_tab(nb, "Buscar")
-        t3 = self._scrollable_tab(nb, "Especiales")
-        t4 = self._scrollable_tab(nb, "Árbol")
-
-        self._tab_ops(t1)
-        self._tab_buscar(t2)
-        self._tab_especiales(t3)
-        self._tab_arbol(t4)
-
-    def _scrollable_tab(self, nb, text):
-        outer  = tk.Frame(nb, bg=C["panel"])
-        nb.add(outer, text=f" {text} ")
-        cnv    = tk.Canvas(outer, bg=C["panel"], highlightthickness=0)
-        sb     = ttk.Scrollbar(outer, orient="vertical", command=cnv.yview)
-        inner  = tk.Frame(cnv, bg=C["panel"])
-        inner.bind("<Configure>",
-            lambda e: cnv.configure(scrollregion=cnv.bbox("all")))
-        cnv.create_window((0,0), window=inner, anchor="nw")
-        cnv.configure(yscrollcommand=sb.set)
-        sb.pack(side="right",  fill="y")
-        cnv.pack(side="left",  fill="both", expand=True)
-
-        def _mw(e):
-            d = int(-1*(e.delta/120)) if e.delta else (-1 if e.num==4 else 1)
-            cnv.yview_scroll(d, "units")
-        cnv.bind("<MouseWheel>", _mw)
-        cnv.bind("<Button-4>",   _mw)
-        cnv.bind("<Button-5>",   _mw)
-        return inner
-
-    # ── Tab Operaciones ─────────────────────────────
-    def _tab_ops(self, p):
-        # Dataset
-        self._sec(p, "📂 Dataset")
-        self._btn(p, "▸  Cargar CSV", self._cargar_dataset, C["blue"]).pack(
-            fill="x", padx=10, pady=(3,1))
-        self._ds_lbl = tk.Label(p, text="Sin dataset cargado",
-                                 bg=C["panel"], fg=C["t2"],
-                                 font=F["small"], wraplength=290, justify="left")
-        self._ds_lbl.pack(anchor="w", padx=12, pady=(0,6))
-
-        # Insertar simple
-        self._sec(p, "➕ Insertar Nodo")
-        self._ins_id = self._entry(p, "ID del curso:")
-        self._btn(p, "Insertar", self._insertar, C["green"]).pack(fill="x", padx=10, pady=2)
-
-        # Insertar múltiple
-        tk.Label(p, text="Múltiples IDs (separados por coma):",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(
-                     anchor="w", padx=12, pady=(6,1))
-        self._ins_multi = tk.Text(p, height=3, bg=C["card"], fg=C["t1"],
-                                   font=F["mono_s"], relief="flat",
-                                   insertbackground=C["blue"], wrap="word")
-        self._ins_multi.pack(fill="x", padx=10, pady=2)
-        self._btn(p, "Insertar Lista", self._insertar_multi, C["green"]).pack(
-            fill="x", padx=10, pady=2)
-
-        # Insertar aleatorio
-        row = tk.Frame(p, bg=C["panel"]); row.pack(fill="x", padx=10, pady=4)
-        tk.Label(row, text="Insertar N aleatorios:",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(side="left")
-        self._rand_n = tk.Entry(row, width=5, bg=C["card"], fg=C["t1"],
-                                 font=F["mono_s"], relief="flat",
-                                 insertbackground=C["blue"])
-        self._rand_n.insert(0,"10"); self._rand_n.pack(side="left", padx=6)
-        self._btn(row, "▶ Insertar", self._insertar_random, C["green"]).pack(side="left")
-
-        # Eliminar
-        self._sec(p, "🗑  Eliminar Nodo")
-        self._del_val = self._entry(p, "ID o valor de satisfacción:")
-        self._del_opt = tk.StringVar(value="id")
-        row2 = tk.Frame(p, bg=C["panel"]); row2.pack(fill="x", padx=10, pady=2)
-        for txt, val in [("Por ID","id"),("Por Satisfacción","satis")]:
-            tk.Radiobutton(row2, text=txt, variable=self._del_opt, value=val,
-                           bg=C["panel"], fg=C["t1"], selectcolor=C["card"],
-                           activebackground=C["panel"],
-                           font=F["small"]).pack(side="left", padx=4)
-        self._btn(p, "Eliminar", self._eliminar, C["red"]).pack(fill="x", padx=10, pady=3)
-
-    # ── Tab Buscar ──────────────────────────────────
-    def _tab_buscar(self, p):
-        self._sec(p, "🔍 Buscar Nodo")
-        self._sch_val = self._entry(p, "ID o valor de satisfacción:")
-        self._sch_opt = tk.StringVar(value="id")
-        row = tk.Frame(p, bg=C["panel"]); row.pack(fill="x", padx=10, pady=2)
-        for txt,val in [("Por ID","id"),("Por Satisfacción","satis")]:
-            tk.Radiobutton(row, text=txt, variable=self._sch_opt, value=val,
-                           bg=C["panel"], fg=C["t1"], selectcolor=C["card"],
-                           activebackground=C["panel"],
-                           font=F["small"]).pack(side="left", padx=4)
-        self._btn(p, "Buscar", self._buscar, C["blue"]).pack(fill="x", padx=10, pady=3)
-        tk.Label(p, text="El nodo encontrado se resalta en el árbol\ny se abre su ventana de información.",
-                 bg=C["panel"], fg=C["t2"], font=F["small"],
-                 justify="left").pack(anchor="w", padx=14, pady=6)
-
-    # ── Tab Especiales ──────────────────────────────
-    def _tab_especiales(self, p):
-        self._sec(p, "🔎 Búsquedas Especiales")
-
-        self._btn(p, "4a)  Positivas > Neg + Neutras",
-                  self._buscar_4a, C["purple"]).pack(fill="x", padx=10, pady=3)
-
-        tk.Label(p, text="4b)  Creados después de (AAAA-MM-DD):",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(anchor="w", padx=12, pady=(6,1))
-        rb = tk.Frame(p, bg=C["panel"]); rb.pack(fill="x", padx=10, pady=2)
-        self._fecha = tk.Entry(rb, width=12, bg=C["card"], fg=C["t1"],
-                               font=F["mono_s"], relief="flat",
-                               insertbackground=C["blue"])
-        self._fecha.insert(0,"2020-01-01"); self._fecha.pack(side="left")
-        self._btn(rb, "Buscar", self._buscar_4b, C["purple"]).pack(side="left", padx=8)
-
-        tk.Label(p, text="4c)  Clases dentro de un rango:",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(anchor="w", padx=12, pady=(6,1))
-        rc = tk.Frame(p, bg=C["panel"]); rc.pack(fill="x", padx=10, pady=2)
-        tk.Label(rc,text="Min:",bg=C["panel"],fg=C["t2"],font=F["small"]).pack(side="left")
-        self._rmin = tk.Entry(rc,width=5,bg=C["card"],fg=C["t1"],font=F["mono_s"],
-                              relief="flat",insertbackground=C["blue"])
-        self._rmin.insert(0,"10"); self._rmin.pack(side="left",padx=4)
-        tk.Label(rc,text="Max:",bg=C["panel"],fg=C["t2"],font=F["small"]).pack(side="left")
-        self._rmax = tk.Entry(rc,width=5,bg=C["card"],fg=C["t1"],font=F["mono_s"],
-                              relief="flat",insertbackground=C["blue"])
-        self._rmax.insert(0,"100"); self._rmax.pack(side="left",padx=4)
-        self._btn(rc,"Buscar",self._buscar_4c,C["purple"]).pack(side="left",padx=6)
-
-        tk.Label(p, text="4d)  Reseñas sobre el promedio:",
-                 bg=C["panel"], fg=C["t2"], font=F["small"]).pack(anchor="w", padx=12, pady=(6,1))
-        rd = tk.Frame(p, bg=C["panel"]); rd.pack(fill="x", padx=10, pady=2)
-        self._rtipo = ttk.Combobox(rd, values=["positivas","negativas","neutras"],
-                                    width=11, state="readonly")
-        self._rtipo.current(0); self._rtipo.pack(side="left")
-        self._btn(rd,"Buscar",self._buscar_4d,C["purple"]).pack(side="left",padx=8)
-
-    # ── Tab Árbol ───────────────────────────────────
-    def _tab_arbol(self, p):
-        self._sec(p, "📊 Recorrido")
-        self._btn(p, "Recorrido por Niveles (BFS)",
-                  self._mostrar_niveles, C["orange"]).pack(fill="x", padx=10, pady=3)
-
-        self._sec(p, "⚙  Controles")
-        self._btn(p, "Resetear Vista", self._reset_view, C["t2"]).pack(fill="x", padx=10, pady=2)
-        self._btn(p, "Limpiar Árbol",  self._limpiar,    C["red"]).pack(fill="x", padx=10, pady=2)
-
-        self._sec(p, "🗺  Leyenda")
-        for color, label in [
-            (C["green"],  "Equilibrado  eq = 0"),
-            (C["blue"],   "Casi bal.  |eq| = 1"),
-            (C["red"],    "Desbalanceado"),
-            (C["orange"], "Nodo resaltado"),
-        ]:
-            r = tk.Frame(p, bg=C["panel"]); r.pack(anchor="w", padx=14, pady=2)
-            tk.Canvas(r, width=11, height=11, bg=color,
-                      highlightthickness=0).pack(side="left", padx=(0,6))
-            tk.Label(r, text=label, bg=C["panel"], fg=C["t2"],
-                     font=F["small"]).pack(side="left")
-
-        self._sec(p, "🖱  Controles del Canvas")
-        tk.Label(p, text="Arrastrar  →  mover árbol\nRueda      →  zoom in/out",
-                 bg=C["panel"], fg=C["t2"], font=F["small"],
-                 justify="left").pack(anchor="w", padx=14, pady=4)
-
-    # ── Canvas central ──────────────────────────────
-    def _build_center(self, parent):
-        hdr = tk.Frame(parent, bg=C["bg"]); hdr.pack(fill="x", padx=10, pady=4)
-        tk.Label(hdr, text="Visualización del Árbol AVL",
-                 bg=C["bg"], fg=C["t1"], font=F["head"]).pack(side="left")
-        tk.Label(hdr, text="  arrastra para mover  ·  rueda para zoom",
-                 bg=C["bg"], fg=C["t2"], font=F["small"]).pack(side="left")
-
-        self._canvas = TreeCanvas(parent)
-        self._canvas.pack(fill="both", expand=True, padx=8, pady=(0,8))
-
-    # ── Log ─────────────────────────────────────────
-    def _build_log(self, parent):
-        tk.Label(parent, text="Registro de Operaciones",
-                 bg=C["panel"], fg=C["purple"], font=F["head"],
-                 padx=10, pady=6).pack(anchor="w")
-        tk.Frame(parent, bg=C["border"], height=1).pack(fill="x")
-
-        self._log_txt = tk.Text(parent, bg=C["card"], fg=C["t1"],
-                                 font=F["mono_s"], relief="flat",
-                                 state="disabled", wrap="word",
-                                 padx=6, pady=4)
-        sb = ttk.Scrollbar(parent, orient="vertical", command=self._log_txt.yview)
-        self._log_txt.configure(yscrollcommand=sb.set)
-        self._log_txt.pack(side="left",  fill="both", expand=True, padx=(8,0), pady=8)
-        sb.pack(side="right", fill="y", pady=8, padx=(0,4))
-
-        self._log_txt.tag_configure("ok",   foreground=C["green"])
-        self._log_txt.tag_configure("err",  foreground=C["red"])
-        self._log_txt.tag_configure("info", foreground=C["blue"])
-        self._log_txt.tag_configure("warn", foreground=C["yellow"])
-
-    # ════════════════════════════════════════════════
-    #  HELPERS
-    # ════════════════════════════════════════════════
-    def _sec(self, p, txt):
-        tk.Frame(p, bg=C["border"], height=1).pack(fill="x", padx=8, pady=(10,3))
-        tk.Label(p, text=txt, bg=C["panel"], fg=C["purple"],
-                 font=F["head"], padx=10).pack(anchor="w")
-
-    def _entry(self, p, label):
-        tk.Label(p, text=label, bg=C["panel"], fg=C["t2"],
-                 font=F["small"]).pack(anchor="w", padx=12, pady=(4,0))
-        e = tk.Entry(p, bg=C["card"], fg=C["t1"], font=F["mono_s"],
-                     relief="flat", insertbackground=C["blue"])
-        e.pack(fill="x", padx=10, pady=2)
-        return e
-
-    def _btn(self, parent, text, cmd, color=None):
-        color = color or C["blue"]
-        b = tk.Button(parent, text=text, command=cmd,
-                      bg=color, fg=C["dark"], font=F["small"],
-                      relief="flat", padx=8, pady=4, cursor="hand2",
-                      activebackground=color, activeforeground=C["dark"])
-        b.bind("<Enter>", lambda e: b.configure(relief="groove"))
-        b.bind("<Leave>", lambda e: b.configure(relief="flat"))
-        return b
-
-    def _log(self, msg: str, tag="info"):
-        self._log_txt.configure(state="normal")
-        ts = datetime.now().strftime("%H:%M:%S")
-        self._log_txt.insert("end", f"[{ts}] {msg}\n", tag)
-        self._log_txt.see("end"); self._log_txt.configure(state="disabled")
-
-    def _refresh(self, hl=None):
-        self._canvas.set_tree(self._tree, hl)
-        self._sv_nodes.set(f"Nodos: {self._tree.total_nodos()}")
-
-    # ════════════════════════════════════════════════
-    #  ACCIONES
-    # ════════════════════════════════════════════════
-    def _cargar_dataset(self):
-        path = filedialog.askopenfilename(
-            title="Seleccionar CSV",
-            filetypes=[("CSV","*.csv"),("Todos","*.*")])
-        if not path: return
-        msg = self._tree.cargar_dataset(path)
-        n   = len(self._tree._dataset)
-        self._ds_lbl.configure(text=f"{os.path.basename(path)}  ({n:,} reg.)")
-        self._sv_ds.set(f"Dataset: {n:,} reg.")
-        self._log(msg, "ok")
-
-    def _insertar(self):
-        v = self._ins_id.get().strip()
-        if not v: self._log("Escribe un ID.", "err"); return
-        ok, msg = self._tree.add_node(v)
-        self._log(msg, "ok" if ok else "err")
-        if ok: self._refresh(v)
-        self._ins_id.delete(0,"end")
-
-    def _insertar_multi(self):
-        txt = self._ins_multi.get("1.0","end").strip()
-        ids = [i.strip() for i in txt.replace("\n",",").split(",") if i.strip()]
-        if not ids: self._log("Sin IDs.", "err"); return
-        ok_c = 0
-        for id_ in ids:
-            ok, msg = self._tree.add_node(id_)
-            if ok: ok_c += 1
-            else:  self._log(f"  {id_}: {msg}", "warn")
-        self._log(f"{ok_c}/{len(ids)} nodos insertados.", "ok")
-        self._refresh(); self._ins_multi.delete("1.0","end")
-
-    def _insertar_random(self):
-        if not self._tree._dataset:
-            self._log("Carga un dataset primero.", "err"); return
-        try: n = int(self._rand_n.get())
-        except: n = 10
-        ids  = random.sample(list(self._tree._dataset.keys()),
-                             min(n, len(self._tree._dataset)))
-        ok_c = sum(1 for id_ in ids if self._tree.add_node(id_)[0])
-        self._log(f"{ok_c} nodos aleatorios insertados.", "ok")
-        self._refresh()
-
-    def _eliminar(self):
-        v = self._del_val.get().strip()
-        if not v: self._log("Escribe un valor.", "err"); return
-        ok, msg = self._tree.delete_node(v, self._del_opt.get())
-        self._log(msg, "ok" if ok else "err")
-        if ok: self._refresh()
-        self._del_val.delete(0,"end")
-
-    def _buscar(self):
-        v = self._sch_val.get().strip()
-        if not v: self._log("Escribe un valor.", "err"); return
-        nd = self._tree.search_node(v, self._sch_opt.get())
-        if nd is None:
-            self._log(f"'{v}' no encontrado.", "err")
+        self.title("Laboratorio 1 - Arbol AVL (Cursos Udemy)")
+        self.geometry("1200x750")
+        self.configure(bg=COLOR_FONDO)
+        
+        # Inicializar arbol
+        self.arbol = ArbolAVL()
+        
+        # Crear interfaz
+        self._crear_menu()
+        self._crear_panel_izquierdo()
+        self._crear_panel_central()
+        self._crear_panel_derecho()
+        
+        # Mensaje inicial
+        self._log("Sistema iniciado. Cargue un dataset para comenzar.")
+    
+    def _crear_menu(self):
+        """Crea la barra de menu"""
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+        
+        menu_archivo = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Archivo", menu=menu_archivo)
+        menu_archivo.add_command(label="Cargar Dataset", command=self._cargar_dataset)
+        menu_archivo.add_separator()
+        menu_archivo.add_command(label="Salir", command=self.quit)
+        
+        menu_ayuda = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Ayuda", menu=menu_ayuda)
+        menu_ayuda.add_command(label="Acerca de", command=self._acerca_de)
+    
+    def _crear_panel_izquierdo(self):
+        """Panel con controles de operaciones"""
+        panel = tk.Frame(self, bg=COLOR_PANEL, width=300)
+        panel.pack(side="left", fill="y", padx=10, pady=10)
+        panel.pack_propagate(False)
+        
+        # Titulo
+        tk.Label(panel, text="Operaciones", font=("Arial", 12, "bold"),
+                bg=COLOR_PANEL, fg=COLOR_BOTON).pack(pady=10)
+        
+        # === SECCION DATASET ===
+        self._crear_seccion(panel, "Dataset")
+        tk.Button(panel, text="Cargar CSV", command=self._cargar_dataset,
+                 bg=COLOR_BOTON, fg="white", width=25).pack(pady=5)
+        self.lbl_dataset = tk.Label(panel, text="Sin dataset cargado",
+                                   bg=COLOR_PANEL, fg=COLOR_TEXTO_SEC, wraplength=280)
+        self.lbl_dataset.pack(pady=5)
+        
+        # === SECCION INSERTAR ===
+        self._crear_seccion(panel, "Insertar Nodo")
+        tk.Label(panel, text="ID del curso:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=20)
+        self.entry_insertar = tk.Entry(panel, width=30)
+        self.entry_insertar.pack(pady=5)
+        tk.Button(panel, text="Insertar", command=self._insertar,
+                 bg=COLOR_EXITO, fg="white", width=25).pack(pady=5)
+        
+        # Insertar multiples
+        tk.Label(panel, text="IDs separados por coma:", bg=COLOR_PANEL, fg=COLOR_TEXTO_SEC).pack(anchor="w", padx=20, pady=(10,0))
+        self.entry_multi = tk.Text(panel, height=3, width=30)
+        self.entry_multi.pack(pady=5)
+        tk.Button(panel, text="Insertar Multiples", command=self._insertar_multi,
+                 bg=COLOR_EXITO, fg="white", width=25).pack(pady=5)
+        
+        # Insertar aleatorios
+        frame_rand = tk.Frame(panel, bg=COLOR_PANEL)
+        frame_rand.pack(pady=5)
+        tk.Label(frame_rand, text="Cantidad:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(side="left")
+        self.entry_rand = tk.Entry(frame_rand, width=5)
+        self.entry_rand.insert(0, "5")
+        self.entry_rand.pack(side="left", padx=5)
+        tk.Button(frame_rand, text="Aleatorios", command=self._insertar_random,
+                 bg=COLOR_EXITO, fg="white").pack(side="left")
+        
+        # === SECCION ELIMINAR ===
+        self._crear_seccion(panel, "Eliminar Nodo")
+        tk.Label(panel, text="Valor a eliminar:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=20)
+        self.entry_eliminar = tk.Entry(panel, width=30)
+        self.entry_eliminar.pack(pady=5)
+        
+        self.tipo_eliminar = tk.StringVar(value="id")
+        tk.Radiobutton(panel, text="Por ID", variable=self.tipo_eliminar, 
+                      value="id", bg=COLOR_PANEL, fg=COLOR_TEXTO,
+                      selectcolor=COLOR_TARJETA).pack(anchor="w", padx=20)
+        tk.Radiobutton(panel, text="Por Satisfaccion", variable=self.tipo_eliminar,
+                      value="satis", bg=COLOR_PANEL, fg=COLOR_TEXTO,
+                      selectcolor=COLOR_TARJETA).pack(anchor="w", padx=20)
+        
+        tk.Button(panel, text="Eliminar", command=self._eliminar,
+                 bg=COLOR_ERROR, fg="white", width=25).pack(pady=5)
+        
+        # === SECCION BUSCAR ===
+        self._crear_seccion(panel, "Buscar Nodo")
+        tk.Label(panel, text="Valor a buscar:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=20)
+        self.entry_buscar = tk.Entry(panel, width=30)
+        self.entry_buscar.pack(pady=5)
+        
+        self.tipo_buscar = tk.StringVar(value="id")
+        tk.Radiobutton(panel, text="Por ID", variable=self.tipo_buscar,
+                      value="id", bg=COLOR_PANEL, fg=COLOR_TEXTO,
+                      selectcolor=COLOR_TARJETA).pack(anchor="w", padx=20)
+        tk.Radiobutton(panel, text="Por Satisfaccion", variable=self.tipo_buscar,
+                      value="satis", bg=COLOR_PANEL, fg=COLOR_TEXTO,
+                      selectcolor=COLOR_TARJETA).pack(anchor="w", padx=20)
+        
+        tk.Button(panel, text="Buscar", command=self._buscar,
+                 bg=COLOR_BOTON, fg="white", width=25).pack(pady=5)
+    
+    def _crear_panel_central(self):
+        """Panel con la visualizacion del arbol"""
+        panel = tk.Frame(self, bg=COLOR_FONDO)
+        panel.pack(side="left", fill="both", expand=True, pady=10)
+        
+        # Header
+        header = tk.Frame(panel, bg=COLOR_FONDO)
+        header.pack(fill="x", padx=10, pady=5)
+        tk.Label(header, text="Visualizacion del Arbol AVL", 
+                font=("Arial", 11, "bold"),
+                bg=COLOR_FONDO, fg=COLOR_TEXTO).pack(side="left")
+        self.lbl_contador = tk.Label(header, text="Nodos: 0",
+                                    bg=COLOR_FONDO, fg=COLOR_EXITO)
+        self.lbl_contador.pack(side="right")
+        
+        # Canvas con scrollbars
+        frame_canvas = tk.Frame(panel, bg="white")
+        frame_canvas.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        self.canvas = VisualizadorArbol(frame_canvas, width=800, height=600)
+        hbar = ttk.Scrollbar(frame_canvas, orient="horizontal", command=self.canvas.xview)
+        vbar = ttk.Scrollbar(frame_canvas, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+        
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        vbar.grid(row=0, column=1, sticky="ns")
+        hbar.grid(row=1, column=0, sticky="ew")
+        
+        frame_canvas.grid_rowconfigure(0, weight=1)
+        frame_canvas.grid_columnconfigure(0, weight=1)
+    
+    def _crear_panel_derecho(self):
+        """Panel con busquedas especiales y log"""
+        panel = tk.Frame(self, bg=COLOR_PANEL, width=300)
+        panel.pack(side="right", fill="y", padx=10, pady=10)
+        panel.pack_propagate(False)
+        
+        # Titulo
+        tk.Label(panel, text="Busquedas Especiales", font=("Arial", 12, "bold"),
+                bg=COLOR_PANEL, fg=COLOR_ALERTA).pack(pady=10)
+        
+        # 4a
+        tk.Button(panel, text="4a) Positivas > Neg + Neutras",
+                 command=self._buscar_4a, bg="#9b59b6", fg="white",
+                 width=30).pack(pady=5)
+        
+        # 4b
+        tk.Label(panel, text="4b) Fecha posterior a (AAAA-MM-DD):",
+                bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=10, pady=(10,0))
+        self.entry_fecha = tk.Entry(panel, width=15)
+        self.entry_fecha.insert(0, "2020-01-01")
+        self.entry_fecha.pack(pady=5)
+        tk.Button(panel, text="Buscar por Fecha", command=self._buscar_4b,
+                 bg="#9b59b6", fg="white", width=30).pack(pady=5)
+        
+        # 4c
+        frame_rango = tk.Frame(panel, bg=COLOR_PANEL)
+        frame_rango.pack(pady=5)
+        tk.Label(frame_rango, text="Min:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(side="left")
+        self.entry_min = tk.Entry(frame_rango, width=6)
+        self.entry_min.insert(0, "10")
+        self.entry_min.pack(side="left", padx=3)
+        tk.Label(frame_rango, text="Max:", bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(side="left")
+        self.entry_max = tk.Entry(frame_rango, width=6)
+        self.entry_max.insert(0, "50")
+        self.entry_max.pack(side="left", padx=3)
+        tk.Button(panel, text="4c) Buscar por Rango de Clases",
+                 command=self._buscar_4c, bg="#9b59b6", fg="white",
+                 width=30).pack(pady=5)
+        
+        # 4d
+        tk.Label(panel, text="4d) Tipo de reviews sobre promedio:",
+                bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(anchor="w", padx=10, pady=(10,0))
+        self.combo_tipo = ttk.Combobox(panel, values=["positivas", "negativas", "neutras"],
+                                       width=15, state="readonly")
+        self.combo_tipo.current(0)
+        self.combo_tipo.pack(pady=5)
+        tk.Button(panel, text="Buscar sobre Promedio", command=self._buscar_4d,
+                 bg="#9b59b6", fg="white", width=30).pack(pady=5)
+        
+        # Recorrido por niveles
+        self._crear_seccion(panel, "Recorrido")
+        tk.Button(panel, text="Mostrar Recorrido por Niveles",
+                 command=self._mostrar_recorrido, bg=COLOR_ALERTA, fg="white",
+                 width=30).pack(pady=5)
+        
+        # Log
+        self._crear_seccion(panel, "Registro de Operaciones")
+        self.txt_log = scrolledtext.ScrolledText(panel, width=35, height=12,
+                                                bg=COLOR_TARJETA, fg=COLOR_TEXTO)
+        self.txt_log.pack(padx=5, pady=5)
+        self.txt_log.configure(state="disabled")
+    
+    def _crear_seccion(self, parent, titulo):
+        """Crea un separador visual con titulo"""
+        tk.Frame(parent, bg=COLOR_BORDE, height=2).pack(fill="x", padx=10, pady=15)
+        tk.Label(parent, text=titulo, font=("Arial", 10, "bold"),
+                bg=COLOR_PANEL, fg=COLOR_BOTON).pack(anchor="w", padx=10)
+    
+    def _log(self, mensaje, tipo="info"):
+        """Agrega mensaje al log"""
+        self.txt_log.configure(state="normal")
+        import datetime
+        hora = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        if tipo == "error":
+            tag = "error"
+            self.txt_log.tag_configure("error", foreground=COLOR_ERROR)
+        elif tipo == "exito":
+            tag = "exito"
+            self.txt_log.tag_configure("exito", foreground=COLOR_EXITO)
         else:
-            self._log(f"Encontrado: {nd.id} · {nd.title[:32]} · Satis={nd.satis:.5f}", "ok")
-            self._refresh(nd.id)
-            NodeInfoDialog(self, nd, self._tree)
-        self._sch_val.delete(0,"end")
-
+            tag = "info"
+            self.txt_log.tag_configure("info", foreground=COLOR_TEXTO)
+        
+        self.txt_log.insert("end", f"[{hora}] {mensaje}\\n", tag)
+        self.txt_log.see("end")
+        self.txt_log.configure(state="disabled")
+    
+    def _actualizar_vista(self, resaltar_id=None):
+        """Redibuja el arbol y actualiza contadores"""
+        self.canvas.dibujar_arbol(self.arbol, resaltar_id)
+        self.lbl_contador.configure(text=f"Nodos: {self.arbol.contar_nodos()}")
+    
+    # ============================================================
+    # ACCIONES DE LOS BOTONES
+    # ============================================================
+    
+    def _cargar_dataset(self):
+        """Carga el archivo CSV"""
+        ruta = filedialog.askopenfilename(
+            title="Seleccionar archivo CSV",
+            filetypes=[("Archivos CSV", "*.csv"), ("Todos", "*.*")]
+        )
+        if ruta:
+            exito, mensaje = self.arbol.cargar_dataset(ruta)
+            if exito:
+                nombre = os.path.basename(ruta)
+                self.lbl_dataset.configure(text=f"{nombre}\\n{mensaje}")
+                self._log(mensaje, "exito")
+            else:
+                self._log(mensaje, "error")
+    
+    def _insertar(self):
+        """Inserta un solo nodo"""
+        id_curso = self.entry_insertar.get().strip()
+        if not id_curso:
+            self._log("Ingrese un ID", "error")
+            return
+        
+        exito, mensaje = self.arbol.insertar(id_curso)
+        if exito:
+            self._log(mensaje, "exito")
+            self.entry_insertar.delete(0, "end")
+            self._actualizar_vista(id_curso)
+        else:
+            self._log(mensaje, "error")
+    
+    def _insertar_multi(self):
+        """Inserta multiples nodos"""
+        texto = self.entry_multi.get("1.0", "end").strip()
+        if not texto:
+            self._log("Ingrese al menos un ID", "error")
+            return
+        
+        ids = [i.strip() for i in texto.split(",") if i.strip()]
+        exitosos = 0
+        
+        for id_curso in ids:
+            exito, mensaje = self.arbol.insertar(id_curso)
+            if exito:
+                exitosos += 1
+            else:
+                self._log(f"{id_curso}: {mensaje}", "error")
+        
+        self._log(f"Insertados {exitosos} de {len(ids)} nodos", "exito")
+        self.entry_multi.delete("1.0", "end")
+        self._actualizar_vista()
+    
+    def _insertar_random(self):
+        """Inserta nodos aleatorios del dataset"""
+        if not self.arbol.dataset:
+            self._log("Cargue un dataset primero", "error")
+            return
+        
+        try:
+            cantidad = int(self.entry_rand.get())
+        except:
+            cantidad = 5
+        
+        ids_disponibles = list(self.arbol.dataset.keys())
+        if cantidad > len(ids_disponibles):
+            cantidad = len(ids_disponibles)
+        
+        seleccionados = random.sample(ids_disponibles, cantidad)
+        exitosos = 0
+        
+        for id_curso in seleccionados:
+            exito, _ = self.arbol.insertar(id_curso)
+            if exito:
+                exitosos += 1
+        
+        self._log(f"Insertados {exitosos} nodos aleatorios", "exito")
+        self._actualizar_vista()
+    
+    def _eliminar(self):
+        """Elimina un nodo"""
+        valor = self.entry_eliminar.get().strip()
+        if not valor:
+            self._log("Ingrese un valor", "error")
+            return
+        
+        tipo = self.tipo_eliminar.get()
+        exito, mensaje = self.arbol.eliminar(valor, tipo)
+        
+        if exito:
+            self._log(mensaje, "exito")
+            self.entry_eliminar.delete(0, "end")
+            self._actualizar_vista()
+        else:
+            self._log(mensaje, "error")
+    
+    def _buscar(self):
+        """Busca un nodo y muestra su info"""
+        valor = self.entry_buscar.get().strip()
+        if not valor:
+            self._log("Ingrese un valor", "error")
+            return
+        
+        tipo = self.tipo_buscar.get()
+        nodo = self.arbol.buscar(valor, tipo)
+        
+        if nodo:
+            self._log(f"Encontrado: {nodo.get_titulo()[:40]}", "exito")
+            self._actualizar_vista(nodo.get_id())
+            VentanaInfo(self, nodo, self.arbol)
+            self.entry_buscar.delete(0, "end")
+        else:
+            self._log("Nodo no encontrado", "error")
+    
     def _buscar_4a(self):
-        ns = self._tree.buscar_4a()
-        self._log(f"4a: {len(ns)} nodos (positivas > neg+neutras)", "ok")
-        ResultsPanel(self, ns, self._tree, "4a — Positivas > Neg+Neutras") if ns \
-            else self._log("Sin resultados.", "warn")
-
+        """Busqueda 4a: positivas > negativas + neutras"""
+        resultados = self.arbol.buscar_4a_positivas_mayores()
+        self._log(f"4a: {len(resultados)} cursos cumplen el criterio")
+        if resultados:
+            VentanaResultados(self, resultados, self.arbol, 
+                            "4a - Positivas > (Negativas + Neutras)")
+    
     def _buscar_4b(self):
-        f  = self._fecha.get().strip()
-        ns = self._tree.buscar_4b(f)
-        self._log(f"4b: {len(ns)} nodos creados después de {f}", "ok")
-        ResultsPanel(self, ns, self._tree, f"4b — Posterior a {f}") if ns \
-            else self._log("Sin resultados o fecha inválida.", "warn")
-
+        """Busqueda 4b: fecha posterior"""
+        fecha = self.entry_fecha.get().strip()
+        resultados = self.arbol.buscar_4b_fecha_posterior(fecha)
+        self._log(f"4b: {len(resultados)} cursos despues de {fecha}")
+        if resultados:
+            VentanaResultados(self, resultados, self.arbol,
+                            f"4b - Creados despues de {fecha}")
+    
     def _buscar_4c(self):
-        try: mn,mx = int(self._rmin.get()), int(self._rmax.get())
-        except: self._log("Rango inválido.", "err"); return
-        ns = self._tree.buscar_4c(mn, mx)
-        self._log(f"4c: {len(ns)} nodos con clases {mn}–{mx}", "ok")
-        ResultsPanel(self, ns, self._tree, f"4c — Clases {mn}–{mx}") if ns \
-            else self._log("Sin resultados.", "warn")
-
+        """Busqueda 4c: rango de clases"""
+        try:
+            min_c = int(self.entry_min.get())
+            max_c = int(self.entry_max.get())
+        except:
+            self._log("Rango invalido", "error")
+            return
+        
+        resultados = self.arbol.buscar_4c_rango_clases(min_c, max_c)
+        self._log(f"4c: {len(resultados)} cursos entre {min_c} y {max_c} clases")
+        if resultados:
+            VentanaResultados(self, resultados, self.arbol,
+                            f"4c - Entre {min_c} y {max_c} clases")
+    
     def _buscar_4d(self):
-        t  = self._rtipo.get()
-        ns = self._tree.buscar_4d(t)
-        self._log(f"4d: {len(ns)} nodos con {t} sobre el promedio", "ok")
-        ResultsPanel(self, ns, self._tree, f"4d — {t.capitalize()} sobre promedio") if ns \
-            else self._log("Sin resultados.", "warn")
-
-    def _mostrar_niveles(self):
-        niveles = self._tree.recorrido_niveles()
-        if not niveles: self._log("Árbol vacío.", "warn"); return
-        win = tk.Toplevel(self)
-        win.title("Recorrido por Niveles — BFS Recursivo")
-        win.configure(bg=C["panel"]); win.geometry("700x520")
-        tk.Label(win, text="Recorrido por Niveles  (BFS Recursivo)",
-                 bg=C["panel"], fg=C["blue"], font=F["head"], pady=10).pack()
-        txt = tk.Text(win, bg=C["card"], fg=C["t1"], font=F["mono_s"],
-                      relief="flat", padx=12, pady=8)
-        sb2 = ttk.Scrollbar(win, orient="vertical", command=txt.yview)
-        txt.configure(yscrollcommand=sb2.set)
-        txt.pack(side="left", fill="both", expand=True, padx=(16,0), pady=(0,16))
-        sb2.pack(side="right", fill="y", pady=(0,16), padx=(0,8))
-        txt.tag_configure("lvl", foreground=C["purple"], font=("Consolas",9,"bold"))
-        for i, ids in enumerate(niveles):
-            txt.insert("end", f"Nivel {i:>2}:  ", "lvl")
-            txt.insert("end", "  ·  ".join(ids)+"\n")
+        """Busqueda 4d: sobre promedio"""
+        tipo = self.combo_tipo.get()
+        resultados = self.arbol.buscar_4d_sobre_promedio(tipo)
+        self._log(f"4d: {len(resultados)} cursos con {tipo} sobre promedio")
+        if resultados:
+            VentanaResultados(self, resultados, self.arbol,
+                            f"4d - {tipo.capitalize()} sobre promedio")
+    
+    def _mostrar_recorrido(self):
+        """Muestra ventana con recorrido por niveles"""
+        niveles = self.arbol.recorrido_por_niveles()
+        if not niveles:
+            self._log("Arbol vacio", "error")
+            return
+        
+        ventana = tk.Toplevel(self)
+        ventana.title("Recorrido por Niveles (BFS Recursivo)")
+        ventana.geometry("500x400")
+        ventana.configure(bg=COLOR_PANEL)
+        
+        tk.Label(ventana, text="Recorrido por Niveles - BFS Recursivo",
+                font=("Arial", 12, "bold"), bg=COLOR_PANEL, fg=COLOR_BOTON).pack(pady=10)
+        
+        txt = scrolledtext.ScrolledText(ventana, width=60, height=20,
+                                       bg=COLOR_TARJETA, fg=COLOR_TEXTO)
+        txt.pack(padx=10, pady=10)
+        
+        for i, nivel in enumerate(niveles):
+            txt.insert("end", f"Nivel {i}:  ")
+            txt.insert("end", "  -  ".join(nivel) + "\\n\\n")
+        
         txt.configure(state="disabled")
-        self._log(f"Niveles: {len(niveles)}  ·  Total nodos: {self._tree.total_nodos()}", "info")
+        
+        total_nodos = sum(len(n) for n in niveles)
+        self._log(f"Recorrido: {len(niveles)} niveles, {total_nodos} nodos")
+    
+    def _acerca_de(self):
+        """Muestra informacion del programa"""
+        messagebox.showinfo("Acerca de",
+            "Laboratorio 1 - Estructura de Datos II\\n"
+            "Universidad del Norte\\n\\n"
+            "Arbol AVL para gestion de cursos Udemy\\n"
+            "Implementado con Python y tkinter")
 
-    def _reset_view(self): self._canvas.reset_view()
 
-    def _limpiar(self):
-        if messagebox.askyesno("Confirmar", "¿Limpiar el árbol por completo?",
-                               icon="warning"):
-            self._tree.raiz = None
-            self._refresh()
-            self._log("Árbol limpiado.", "warn")
+# ============================================================
+# PUNTO DE ENTRADA
+# ============================================================
 
-
-# ══════════════════════════════════════════════════════
 if __name__ == "__main__":
-    App().mainloop()
+    app = AplicacionAVL()
+    app.mainloop()
