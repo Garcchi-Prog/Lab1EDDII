@@ -1807,4 +1807,4 @@ class AplicacionAVL(tk.Tk):
 # el script principal (no si es importado como modulo).
 if __name__ == "__main__":
     app = AplicacionAVL()
-    app.mainloop()   # Inicia el bucle de eventos de tkinter (la aplicacion queda "escuchando")
+    app.mainloop()   # Inicia el bucle de eventos de tkinter 
