@@ -37,6 +37,7 @@ class Nodo:
         Redondeamos a 5 decimales como nos solicitaron.
         """
         try:
+    # Los convierte a float para evitar problemas de formato          
             rating = float(self.datos[3])
             positivas = float(self.datos[11])
             negativas = float(self.datos[12])
@@ -47,6 +48,7 @@ class Nodo:
                 valor = rating * 0.7 + ((5 * positivas + negativas + 3 * neutras) / total_reviews) * 0.3
                 return round(valor, 5)
             return 0.0
+        # tira error si algun campo no es convertible a float, en ese caso retornamos 0.0
         except:
             return 0.0
     
